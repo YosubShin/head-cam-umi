@@ -1,17 +1,18 @@
-# Track 3 draft: head-camera labelling of glove demonstrations
+# A Head Camera Is (Almost) All You Need — paper sources
 
-Reader's guide for the first draft (`main.tex`, built `main.pdf`). Target: CoRL 2026 workshop
-"The UMI Arena", Track 3 contributed papers, 2-4 pages excluding references, CoRL format,
-single-blind, OpenReview. Due **16 Oct 2026**.
+Reader's guide for the paper (`main.tex`, built `main.pdf`), as submitted to arXiv in October 2026
+and to the CoRL 2026 workshop "The UMI Arena" (Track 3 contributed papers, 2-4 pages excluding
+references, CoRL format). The submitted state is tagged `arxiv-v1-submission` in the
+[yam-umi](https://github.com/YosubShin/yam-umi) repository, where the draft was written.
 
 Build: `latexmk -pdf main.tex` in this directory (then `latexmk -c`). Layout: `sections/` are the 4-page
 versions, `sections/appendix.tex` follows the references, `sections/full/` holds the pre-cut text.
-Red text = placeholder or open question. Blue text = a number that comes from the rollout grid
-still running on the robot (25 scenes per arm; 19 done at the time of writing).
+Figure scripts in `fig/` read `../../rollout_logs/grid_20261016/` and `../../docs/results/` of this
+repository; `fig/grid_stats.py` reproduces every rollout number in the text.
 
 ## The system in five lines
 
-1. The glove is the fiducial-tracked YAM gripper replica from the device-track paper (`../paper`).
+1. The glove is the fiducial-tracked YAM gripper replica from the YAM-UMI paper ([yam-umi/paper](https://github.com/YosubShin/yam-umi/tree/main/paper)).
 2. The collector wears one 4K camera. It sees the fiducial ball on the glove, the jaw tags, and
    four printed AprilTag tiles taped around the workspace. Every frame gives camera pose (tiles),
    gripper pose (ball) and jaw width (tags) from that one image. No fixed camera, no IMU, no SLAM.
@@ -243,5 +244,5 @@ Repository layout: `main.tex` (preamble, title, teaser figure, bibliography) pul
 section from `sections/` (`abstract`, `idea`, `system`, `experiments`, `limitations`), so edit the
 text there. `resources/venue.md` records the venue rules and dates. `refs.bib` (shared with the
 device paper), `fig/make_budget.py`
-regenerates `fig/budget.pdf` from `~/co/pilot/e8/head_val_curves.csv`. The device-track paper is
-in `../paper` and is the reference for style and length.
+regenerates `fig/budget.pdf` from `../docs/results/head_val_curves.csv`. The YAM-UMI paper (yam-umi/paper) is
+the reference for style and length.

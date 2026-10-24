@@ -1,6 +1,6 @@
-# Tracking software: calibrate, record, solve
+# Software: calibrate, record, solve, build, deploy
 
-The Python side of the forward-camera rig. Everything runs from the
+The Python side of the system, collection kit and robot side. Everything runs from the
 **repository root** (`python scripts/...`) and reads/writes `calib/` and
 `data/raw/` relative to it — keep that layout.
 
@@ -209,6 +209,76 @@ system, kit and robot side alike, and for the measured configs in `calib/`.
 The private experiment tree that produced the early numbers links to these
 files with relative symlinks rather than keeping copies, so a change
 committed here is immediately what runs.
+
+## Robot side
+
+The steps after a session, in the order the paper's chain ran them. Robot-side
+scripts run in a LeRobot environment with the
+[lerobot_alohamini](https://github.com/YosubShin/lerobot_alohamini) fork
+checked out (`LEROBOT_ALOHAMINI`, default `~/lerobot_alohamini`); the YAM's
+forward kinematics and the ZMQ host use the i2rt SDK's own venv where noted.
+
+1. **Teleoperation.** `yam_zmq_host.py` owns the CAN buses and runs the
+   bilateral teleop loop (i2rt venv); `record_yam_teleop.py` records LeRobot
+   episodes from it while `record_session.py` records every camera with wall
+   clocks (`docs/COLLECTION_RUNBOOK.md`). Start `so101_cam_track.py` first so
+   the positioner follows the gripper during teleoperation exactly as it will
+   in rollouts.
+2. **Hand-eye** (once per rig state): `scripts/handeye_run.sh <dataset>` runs
+   detect → export → FK → solve (`cv2.calibrateRobotWorldHandEye`) on any
+   session with the ball on the robot and writes `calib/handeye_<dataset>.json`.
+3. **Base ↔ tile world** (once): `base_world_fit.py` fits the link from the
+   head camera's own frames (tiles + ball) against FK over a session; v3 of
+   the paper sits at 6.5 mm / 1.55° median over 5065 frames.
+4. **Glove tool frame** (once per glove unit): `glove_tool_frame.py` builds the
+   same tool frame on the robot's and the glove's ball so IK targets land
+   where the robot's do → `calib/handeye_glove_<unit>.json`.
+5. **Head-camera pose per frame:** `head_pose_fast.py <stem>` (tiles,
+   half-res detect, full-res corner refinement) → `calib/<stem>_cam_world.json`.
+6. **Dataset:** `build_dataset.py --pipeline B --forward <head stem> ...`
+   joins recordings, labels and (for teleop) the skeleton into a LeRobot
+   dataset with joint-space actions via IK; `spotcheck_dataset.py` renders a
+   per-episode check page. `--help` lists the gates and the width maps.
+7. **Viewpoint model** (once per collector): `head_residual_data.py` pairs
+   head and glove poses in the neutral head frame; `head_residual_fit.py
+   --save calib/head_residual_model.json` fits the ridge model and reports the
+   held-out error against the static and gain-tracker baselines.
+8. **Positioner:** `cam_arm_poses.py` samples tile-verified poses,
+   `so101_cam_kin.py fit` fits the kinematics, `so101_cam_park.py` parks
+   closed-loop against the tiles, `so101_cam_track.py` follows the gripper
+   (`--static` for the parked ablation, `--release_cam` to hand the camera to
+   the recorder).
+9. **Training:** LeRobot ACT, 50k steps, with `calib/train_eps_*.txt` as the
+   episode lists; `val_curve.py <checkpoint>` scores a checkpoint on the
+   dataset's held-out episodes with train-parity loading.
+10. **Rollouts:** `evaluate_yam.py --arm <name>` for single rollouts,
+    `eval_grid.py --policies a,b,... --scenes 25` for the placement grid
+    (ghost-aligned re-placement, shuffled arm order, one-key scoring, append-only
+    `trials.jsonl`); `camera_realign.py` puts the fixed camera back between
+    days; `grid_analysis.py <dir> --ref <arm>` gives Wilson intervals, paired
+    wins/losses and exact McNemar tests.
+
+Robot-side command index:
+
+| command | does | step |
+|---|---|---|
+| `yam_zmq_host.py --leader_channel … --follower_channel …` | CAN owner, bilateral teleop, policy mode (i2rt venv) | 1 |
+| `record_yam_teleop.py --dataset D --num_episodes N` | LeRobot episodes from the host's commanded target | 1 |
+| `handeye_run.sh <dataset>` / `handeye.py export\|fk\|solve` | hand-eye from a session with the ball on the robot | 2 |
+| `base_world_fit.py <head stem> --track …` | base ↔ tile world from the head camera | 3 |
+| `glove_tool_frame.py` | glove ball → virtual flange | 4 |
+| `head_pose_fast.py <stem> [--stride N]` | per-frame head-camera pose from the tiles | 5 |
+| `build_dataset.py --pipeline B …` | recordings + labels (+ skeleton) → LeRobot dataset | 6 |
+| `spotcheck_dataset.py <repo>` | per-episode composite check video | 6 |
+| `head_residual_data.py` / `head_residual_fit.py [--save]` | viewpoint model data and fit | 7 |
+| `cam_arm_poses.py` / `so101_cam_kin.py fit\|check` | positioner pose sampling and kinematic fit | 8 |
+| `so101_cam_park.py` / `so101_cam_track.py` | park at the median head pose; follow the gripper | 8 |
+| `so101_cam_steptest.py` | servo gain check under load | 8 |
+| `val_curve.py <ckpt>` | validation loss for one checkpoint | 9 |
+| `evaluate_yam.py --arm A` / `eval_grid.py --policies …` | rollouts; the placement grid | 10 |
+| `camera_realign.py [--ref]` | put the fixed camera back to a reference frame | 10 |
+| `grid_analysis.py <log dir> --ref A` | grid report with paired tests | 10 |
+| `free_base.py`, `fwd_world_fit.py`, `interp_diag.py`, `label_regions.py`, `val_regions.py`, `vis_causal.py`, `head_motion_analysis.py`, `head_tracking_baseline.py`, `gap_bench.py` | analyses behind individual paper numbers; each documents itself with `--help` | — |
 
 ## Troubleshooting (things that actually happened)
 
