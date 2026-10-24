@@ -1,0 +1,35 @@
+{
+ "stem": "yam_head14_b0587",
+ "layout": "calib/workspace_tiles_pilot_v2.json",
+ "T_cam_world": [
+  [
+   -0.8428003195436554,
+   -0.5382068500172543,
+   0.0045834453869315365,
+   0.2864324187814619
+  ],
+  [
+   -0.4483433910568335,
+   0.6973169457237243,
+   -0.5592291845944689,
+   0.12647023975768712
+  ],
+  [
+   0.29778486374020036,
+   -0.4733734929218571,
+   -0.8290004289059145,
+   0.6050138073998811
+  ],
+  [
+   0.0,
+   0.0,
+   0.0,
+   1.0
+  ]
+ ],
+ "n_frames": 47874,
+ "residual_mm_median": 8.7671375833932,
+ "residual_mm_p90": 22.765167993635572,
+ "rotation_deg_median": 2.868940136410956,
+ "note": "fit vs the HEAD-cam chain (tiles x dodeca) on yam_head14_b0587b: forward body poses mapped into the tile frame; replaces the 2026-10-12 tile solve"
+}

@@ -12,3 +12,15 @@ calib/*_detections.*
 calib/*.npz
 calib/tmp_*
 __pycache__/
+
+# robot-side working tree (symlinks to the data disk / HF cache; never in git)
+train_runs
+datasets_out
+rollout_logs/*
+!rollout_logs/grid_20261016/
+rollout_logs/grid_20261016/*
+!rollout_logs/grid_20261016/trials.jsonl
+!rollout_logs/grid_20261016/anecdotes.md
+!rollout_logs/grid_20261016/placements.json
+# the viewpoint model's fit data is small and the model is reproduced from it
+!calib/head_residual_glove5.npz

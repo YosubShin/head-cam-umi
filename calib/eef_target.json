@@ -1,0 +1,9 @@
+{
+ "p_body_mm": [
+  136.14,
+  53.16,
+  -111.78
+ ],
+ "source": "midpoint of jaw tail clusters (11/19 vs 12/20) from b0587_e8, extended to 184mm along the gripper axis (user: ~13cm down + 13cm forward of ball = between-tips region)",
+ "note": "crop-center accuracy (~cm); not a metrology point"
+}

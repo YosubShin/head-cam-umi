@@ -1,0 +1,11 @@
+{
+ "q_seed": [
+  -0.7693248987197876,
+  -8.873607152686696e-16,
+  0.0011351449647918344,
+  -0.06719093769788742,
+  -0.00043857345008291304,
+  -0.02505374327301979
+ ],
+ "note": "median first-frame measured joints over the round-7 Bj robot corpus (197 eps); warm start for offline IK when no skeleton exists (glove sessions)"
+}

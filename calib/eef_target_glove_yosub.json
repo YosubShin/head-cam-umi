@@ -1,0 +1,9 @@
+{
+ "p_body_mm": [
+  -110.76,
+  -95.9,
+  87.07
+ ],
+ "source": "glove_tool_frame.py: fingertip-marker midpoint in the glove ball's body frame (yam_glove2.take2 + yam_glove3 forward frames with both tips and the ball)",
+ "note": "fovea crop centre for the GLOVE unit; the robot's calib/eef_target.json is for the robot ball mount (166 deg rotated)"
+}

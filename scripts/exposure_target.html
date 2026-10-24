@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head><title>Exposure Streak Target</title>
+<style>
+  html,body{margin:0;background:#000;overflow:hidden;height:100%}
+  #bar{position:absolute;top:15%;width:20px;height:40%;background:#fff}
+  #ref{position:absolute;top:62%;left:45%;width:20px;height:25%;background:#fff}
+  #hud{position:fixed;bottom:8px;left:8px;color:#666;font:14px monospace}
+</style></head>
+<body>
+<div id="bar"></div>
+<div id="ref"></div>
+<div id="hud"></div>
+<script>
+// White bar sweeping at a fixed px/frame; at 60Hz display, speed = 60*STEP px/s.
+// The static bar (bottom) is the zero-motion reference for width/contrast.
+const STEP = 14;               // px per display frame
+let x = 0, frames = 0, t0 = performance.now();
+const bar = document.getElementById("bar"), hud = document.getElementById("hud");
+function tick(){
+  x = (x + STEP) % (innerWidth - 30);
+  bar.style.left = x + "px";
+  frames++;
+  const dt = (performance.now() - t0) / 1000;
+  if (frames % 60 === 0)
+    hud.textContent = `step ${STEP}px/frame  ~${(frames/dt).toFixed(0)}fps  => ${(STEP*frames/dt).toFixed(0)} px/s on screen`;
+  requestAnimationFrame(tick);
+}
+tick();
+</script>
+</body>
+</html>

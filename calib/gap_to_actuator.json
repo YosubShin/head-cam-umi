@@ -1,0 +1,20 @@
+{
+ "a": 0.010750637484300971,
+ "b": 0.020371694679553957,
+ "rms_actuator": 0.00165976514404125,
+ "points": [
+  {
+   "gap_mm": 0.0,
+   "actuator": 0.02148323615160343
+  },
+  {
+   "gap_mm": 47.84,
+   "actuator": 0.5323360058309036
+  },
+  {
+   "gap_mm": 90.91,
+   "actuator": 0.998946793002915
+  }
+ ],
+ "note": "actuator = a*gap_mm + b; jaw-FACE gap by caliper; measured 2026-10-07"
+}

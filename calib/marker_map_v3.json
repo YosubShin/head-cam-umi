@@ -1,0 +1,9 @@
+{
+  "note": "pilot5+ marker epoch (2026-09-24 hardware): NEW tail set installed; all tail faces reprinted and caliper-measured at 12.16mm (previous wedge prints were 12.13). IDs assumed unchanged from v2 — verify against detection ids on the first take. Bases 15/16/21/22 (gripper-back L-bracket) and 16h5 tips 0/1 physically unchanged. Tail-to-body / estimator geometry re-solves from GT during the first session's build as usual (remount doctrine). Pass via --marker-map for takes recorded on/after 2026-09-24; pilot3/4 takes keep v2; pre-pilot3 keep the built-in v1.",
+  "tails": {"11": 12.16, "12": 12.16, "19": 12.16, "20": 12.16,
+            "13": 12.16, "14": 12.16, "17": 12.16, "18": 12.16,
+            "23": 12.16, "24": 12.16},
+  "bases": {"15": 12.16, "16": 12.16, "21": 12.16, "22": 12.16},
+  "tips": {"0": 6.14, "1": 6.14},
+  "tips_dict": "16h5"
+}

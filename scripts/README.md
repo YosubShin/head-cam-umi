@@ -204,11 +204,11 @@ exposure/gain/focus controls, selected by device name.
 
 ## Where to edit
 
-This directory is the single source of truth for these scripts and for the
-measured unit configs in `calib/`. The private experiment tree (`pilot`)
-links to them with relative symlinks rather than keeping copies, so a change
-committed here is immediately what the robot-side pipeline runs. Robot-only
-tooling (hand-eye, gap bench, dataset construction, training) is not here.
+This directory is the single source of truth for every script of the
+system, kit and robot side alike, and for the measured configs in `calib/`.
+The private experiment tree that produced the early numbers links to these
+files with relative symlinks rather than keeping copies, so a change
+committed here is immediately what runs.
 
 ## Troubleshooting (things that actually happened)
 
