@@ -51,7 +51,7 @@ fragment. Arm 6 is scored on the encoder targets too (its own-chain loss is 0.28
 Protocol: 25 block placements, each placed once and then re-placed to a saved reference image
 (ghost alignment) for every other arm; arm order shuffled per scene; 60 s budget; outcome scored
 by the operator (success / no grasp / dropped before bin / dropped at bin / timeout).
-Log: `~/co/pilot/rollout_logs/grid_20261016/trials.jsonl`; policy-view mp4 per trial, external-view
+Log: `rollout_logs/grid_20261016/trials.jsonl`; policy-view mp4 per trial, external-view
 `_world.mp4` from scene 15 on.
 
 | # | arm | success | median time to success | failures |
@@ -161,7 +161,7 @@ viewpoint model is a naive linear fit on one glove session, so the numbers here 
   policies do not transfer (val 0.52 vs 0.26 co-trained), as in the device paper.
 - 25 trials per arm; one seed per policy; no paired difference below p = 0.05 (two at 0.06).
 
-## Anecdotes (operator notes, `~/co/pilot/rollout_logs/grid_20261016/anecdotes.md`)
+## Anecdotes (operator notes, `rollout_logs/grid_20261016/anecdotes.md`)
 
 - Scene 5, low budget: teleop-only could not close in on the block; the mix missed its first
   grasp, backed off, re-grasped and succeeded.
