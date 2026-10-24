@@ -252,6 +252,9 @@ def main():
                          "mark episode boundaries interactively; writes "
                          "data/raw/<dataset>_glove_episodes.json for "
                          "build_dataset --episode-marks.")
+    ap.add_argument("--glove_unit", default="yosub",
+                    help="glove unit name: calib/glove_<unit>_*_bundle.json "
+                         "for the live pose publisher")
     ap.add_argument("--width_holds", action="store_true",
                     help="glove: enable the 'm <gap_mm>' caliper width holds "
                          "at the episode prompt. Holds characterise the glove "
@@ -443,6 +446,15 @@ def main():
             if primary:
                 env["ZOOM"] = "1"    # EEF-tracking zoom window for teleop
                 env["SQUARE"] = "1"  # policy-obs square + out-of-range shade
+                # live marker pose for the head tracker (so101_cam_track.py
+                # --hand-source markers); POSE_PUB=0 in the env disables it
+                if os.environ.get("POSE_PUB", "5611") != "0":
+                    env["POSE_PUB"] = os.environ.get("POSE_PUB", "5611")
+                    if args.glove:
+                        env["POSE_BUNDLE"] = \
+                            f"calib/glove_{args.glove_unit}_dodeca_bundle.json"
+                        env["POSE_GRIPPER_BUNDLE"] = \
+                            f"calib/glove_{args.glove_unit}_gripper_bundle.json"
             p = subprocess.Popen(
                 [sys.executable, str(PILOT / "scripts/uvc_record.py"),
                  stem, dev, res, fps],

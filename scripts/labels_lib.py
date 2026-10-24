@@ -57,6 +57,69 @@ def load_gripper_bundle(path="calib/gripper_bundle.json"):
             for k, v in b["markers"].items()}
 
 
+def solve_body_pose(ids, cs, K, dist, T_body, dobj, extra=None, last=None,
+                    rms_max=5.0):
+    """ONE frame's fused body pose in the camera frame, from 4x4 detections.
+
+    ids: marker ids; cs: matching 4x2 corner arrays in SENSOR px (scale
+    corners from a downscaled image first); extra: calibrated base markers
+    {id: (T_marker->body, edge_mm)} (load_gripper_bundle); last: (rvec, tvec)
+    of the running track (warm start + the single-marker fallback's gate).
+    Returns (rvec, tvec, rms_px, n_faces, n_extra) or None. Same solve and
+    gates as body_frames (live use: uvc_record.py POSE_PUB publisher)."""
+    op, ip, n_extra = [], [], 0
+    for i, cc in zip(ids, cs):
+        i = int(i)
+        if i in T_body:
+            P = (T_body[i] @ np.hstack([dobj, np.ones((4, 1))]).T).T[:, :3]
+        elif extra and i in extra:
+            Tm, edge = extra[i]
+            P = (Tm @ np.hstack([marker_obj(edge), np.ones((4, 1))]).T).T[:, :3]
+            n_extra += 1
+        else:
+            continue
+        op.append(P)
+        ip.append(np.asarray(cc, dtype=np.float64).reshape(4, 2))
+    single = len(op) == 1 and n_extra >= 1
+    if len(op) < 2 and not single:
+        return None
+    if single and last is None:
+        return None
+    op_all, ip_all = np.concatenate(op), np.concatenate(ip)
+    if last is not None:
+        ok, rvec, tvec = cv2.solvePnP(op_all, ip_all, K, dist,
+                                      rvec=last[0].copy(), tvec=last[1].copy(),
+                                      useExtrinsicGuess=True,
+                                      flags=cv2.SOLVEPNP_ITERATIVE)
+    else:
+        ok, rvec, tvec = cv2.solvePnP(op_all, ip_all, K, dist,
+                                      flags=cv2.SOLVEPNP_ITERATIVE)
+    if not ok:
+        return None
+    if last is not None and not single:
+        ok2, rv2, tv2 = cv2.solvePnP(op_all, ip_all, K, dist,
+                                     flags=cv2.SOLVEPNP_SQPNP)
+        if ok2:
+            p1, _ = cv2.projectPoints(op_all, rvec, tvec, K, dist)
+            p2, _ = cv2.projectPoints(op_all, rv2, tv2, K, dist)
+            e1 = ((p1.reshape(-1, 2) - ip_all) ** 2).sum(1).mean()
+            e2 = ((p2.reshape(-1, 2) - ip_all) ** 2).sum(1).mean()
+            if e2 < e1:
+                rvec, tvec = rv2, tv2
+    if single:
+        if np.linalg.norm(tvec.ravel() - last[1].ravel()) > 0.05 \
+                or np.linalg.norm(rvec.ravel() - last[0].ravel()) > 0.5:
+            return None
+        rms = -1.0
+    else:
+        proj, _ = cv2.projectPoints(op_all, rvec, tvec, K, dist)
+        rms = float(np.sqrt(((proj.reshape(-1, 2) - ip_all) ** 2)
+                            .sum(axis=1).mean()))
+        if rms > (rms_max if n_extra == 0 else rms_max * 1.6):
+            return None
+    return rvec, tvec, rms, len(op) - n_extra, n_extra
+
+
 def body_frames(det, ts, K, dist, T_body, dobj, markers, rms_max=5.0,
                 extra=None):
     """Per-frame fused dodeca pose + marker positions in the body frame.

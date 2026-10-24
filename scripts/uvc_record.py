@@ -214,6 +214,38 @@ try:
                 print(f"(zoom: marker-centroid fallback — {e})", flush=True)
         last_rt = None
 
+        # live body-pose publisher (POSE_PUB=<port>): fused dodeca(+base
+        # marker) pose of the unit in view, solved on the half-res preview
+        # pipe with the offline pipeline's bundle + gates, sent as ZMQ PUB
+        # JSON {t, rvec, tvec (m, camera frame), rms, n, n_extra} per
+        # processed frame (rvec None = no pose this frame). Consumer:
+        # so101_cam_track.py --hand-source markers (glove or robot).
+        pose_pub = None
+        if os.environ.get("POSE_PUB", "0") not in ("", "0"):
+            try:
+                import zmq
+                sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+                import labels_lib as LL
+                Kp, distp = LL.load_intrinsics(os.environ.get(
+                    "POSE_INTR", os.environ.get("ZOOM_INTR",
+                                                "calib/B0587_intrinsics.json")))
+                _pb = os.environ.get("POSE_BUNDLE",
+                                     "calib/dodeca_bundle_ideal.json")
+                Tbp, dobjp = LL.load_bundle(_pb)
+                _gb = os.environ.get("POSE_GRIPPER_BUNDLE",
+                                     "calib/gripper_bundle.json")
+                extrap = LL.load_gripper_bundle(_gb) if _gb != "none" else {}
+                pose_pub = zmq.Context.instance().socket(zmq.PUB)
+                pose_pub.bind(f"tcp://*:{os.environ['POSE_PUB']}")
+                pose_last = None
+                pose_stat = [0, 0]                # frames, poses
+                print(f"(pose publisher: tcp port {os.environ['POSE_PUB']}, "
+                      f"bundle {_pb}, base markers {sorted(extrap)})",
+                      flush=True)
+            except Exception as e:
+                print(f"(pose publisher disabled — {e})", flush=True)
+                pose_pub = None
+
         def rot_pt(x, y):
             """pipe coords -> rotated-preview coords"""
             if ROT == cv2.ROTATE_90_CLOCKWISE:
@@ -251,15 +283,40 @@ try:
                 time.sleep(0.01)
                 continue
             buf, seen = latest[0], latest[1]
-            if sink is None and zsink is None:
+            if sink is None and zsink is None and pose_pub is None:
                 continue
             raw = np.frombuffer(buf, np.uint8).reshape(PH_P, PW_P, 3)
             ids = None
-            if overlay or zsink is not None:
+            if overlay or zsink is not None or pose_pub is not None:
                 # detect UNROTATED (PnP needs sensor coords, corners scale
                 # by SSCALE); the half-res pipe is already detection-sized
                 detf, dscale = raw, float(SSCALE)
                 cs, ids, _ = adet.detectMarkers(detf)
+            if pose_pub is not None:
+                t_frame = time.time()
+                sol = None
+                if ids is not None:
+                    sol = LL.solve_body_pose(
+                        ids.ravel(), [c.reshape(4, 2) * dscale for c in cs],
+                        Kp, distp, Tbp, dobjp, extra=extrap, last=pose_last)
+                pose_stat[0] += 1
+                if sol is not None:
+                    rv_p, tv_p, rms_p, nf_p, ne_p = sol
+                    pose_last = (rv_p, tv_p)
+                    pose_stat[1] += 1
+                    msg = {"t": t_frame, "rvec": rv_p.ravel().tolist(),
+                           "tvec": tv_p.ravel().tolist(), "rms": rms_p,
+                           "n": nf_p, "n_extra": ne_p}
+                else:
+                    msg = {"t": t_frame, "rvec": None, "tvec": None,
+                           "rms": None, "n": 0, "n_extra": 0}
+                try:
+                    pose_pub.send_json(msg, zmq.NOBLOCK)
+                except Exception:
+                    pass
+                if pose_stat[0] % 500 == 0:
+                    print(f"\n(pose publisher: {pose_stat[1]}/{pose_stat[0]} "
+                          "frames with a pose)", flush=True)
             full = cv2.rotate(raw, ROT) if ROT is not None else raw
             small = cv2.resize(full, (DW, DH), interpolation=cv2.INTER_AREA)
             if os.environ.get("SQUARE", "0") == "1":
