@@ -171,7 +171,8 @@ perceived centre of view.
 
 - **`arducam_gopro_mount`** carries the B0587 board and ends in the GoPro
   two-prong pattern, so the camera clips into the head strap and into the
-  positioner alike; `STEP/arducam_gopro_mount.step`.
+  positioner alike; print `STL/arducam_gopro_mount.stl`
+  (`STEP/arducam_gopro_mount.step` is the editable source).
 - **`44mm_gopro_mount_extender`** is a GoPro-pattern extender for when either
   mount needs more reach; `STL/44mm_gopro_mount_extender.stl`.
 
