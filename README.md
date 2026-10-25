@@ -8,9 +8,9 @@ camera rides a low-cost servo arm beside the robot that mimics the collector's
 head from the robot's joint state. No wrist camera, no cable on the hand, no
 IMU, no SLAM, no fixed tracker, and one data stream instead of three.
 
-> **Paper:** [A Head Camera Is (Almost) All You Need: An Electronics-Free UMI Glove Labelled and Observed by One Moving Camera](paper/main.pdf)
-> (arXiv, October 2026; submitted to the CoRL 2026 workshop *The UMI Arena*) ·
-> [LaTeX source and figures](paper/) ·
+> **Paper:** [A Head Camera Is (Almost) All You Need: An Electronics-Free UMI Glove Labelled and Observed by One Moving Camera](https://arxiv.org/abs/2610.27622)
+> (arXiv:2610.27622, October 2026; submitted to the CoRL 2026 workshop *The UMI Arena*) ·
+> [PDF](paper/main.pdf) · [LaTeX source and figures](paper/) ·
 > [rollout grid log](rollout_logs/grid_20261016/trials.jsonl)
 
 <p align="center">
@@ -167,24 +167,34 @@ head, so each jaw carries a printed wedge with its own tags.
 A $10 GoPro head strap holds the Arducam B0587 through a printed GoPro-pattern
 adapter (103 g worn, plus the 37 g USB cable). The camera is aimed once per
 session using its preview at 0.5–1 m, aligning the frame centre with the
-perceived centre of view. `STL/44mm_gopro_mount_extender.stl` is the
-GoPro-pattern extender used with the mounts.
+perceived centre of view.
+
+- **`arducam_gopro_mount`** carries the B0587 board and ends in the GoPro
+  two-prong pattern, so the camera clips into the head strap and into the
+  positioner alike; `STEP/arducam_gopro_mount.step`.
+- **`44mm_gopro_mount_extender`** is a GoPro-pattern extender for when either
+  mount needs more reach; `STL/44mm_gopro_mount_extender.stl`.
 
 ### The robot's head: SO-101 camera positioner
 
 A six-joint SO-101 follower arm (six Feetech STS3215 servos, $122 in parts)
 with the gripper bracket removed; the gripper servo is reused as a wrist-yaw
 joint carrying a printed GoPro-pattern mount for the same camera, so the one
-camera moves between head and robot without re-mounting. Two printed parts
-replace the gripper:
+camera moves between head and robot without re-mounting. Three printed parts
+replace the gripper, from the wrist outwards:
 
 - **`wrist_yaw_motor_housing`** takes the place of the gripper bracket on the
   wrist-roll output and holds the sixth STS3215 as the wrist-yaw joint; print
   `STL/wrist_yaw_motor_housing.stl`.
-- **`finger_mount_to_gopro_mount`** fits that servo's horn and presents the
-  GoPro pattern; print `STL/finger_mount_to_gopro_mount.stl`. The camera's
-  GoPro-pattern adapter clips in here, with `STL/44mm_gopro_mount_extender.stl`
-  between them if more reach is needed.
+- **`xlerobot_soft_fin_horn_adapter`** bolts to that servo's horn and presents
+  the finger mount of [XLeRobot](https://github.com/Vector-Wangel/XLeRobot)'s
+  soft fin-ray gripper. It is the horn bracket extracted from XLeRobot's
+  `hardware/SO101_soft_fin.stl` (Apache-2.0); print
+  `STL/xlerobot_soft_fin_horn_adapter.stl`.
+- **`finger_mount_to_gopro_mount`** plugs into that finger mount in place of
+  the fin and presents the GoPro pattern; print
+  `STL/finger_mount_to_gopro_mount.stl`. The camera's `arducam_gopro_mount`
+  clips in here, with the extender between them if more reach is needed.
 
 Its kinematics are fitted once from 60 tile-verified poses
 (`so101_cam_kin.py`, 7 mm / 0.7° residual). At each session start it parks at

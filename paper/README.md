@@ -1,7 +1,7 @@
 # A Head Camera Is (Almost) All You Need — paper sources
 
-Reader's guide for the paper (`main.tex`, built `main.pdf`), as submitted to arXiv in October 2026
-and to the CoRL 2026 workshop "The UMI Arena" (Track 3 contributed papers, 2-4 pages excluding
+Reader's guide for the paper (`main.tex`, built `main.pdf`), as submitted to arXiv
+([arXiv:2610.27622](https://arxiv.org/abs/2610.27622), October 2026) and to the CoRL 2026 workshop "The UMI Arena" (Track 3 contributed papers, 2-4 pages excluding
 references, CoRL format). The submitted state is tagged `arxiv-v1-submission` in the
 [yam-umi](https://github.com/YosubShin/yam-umi) repository, where the draft was written.
 
