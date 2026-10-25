@@ -174,8 +174,19 @@ GoPro-pattern extender used with the mounts.
 
 A six-joint SO-101 follower arm (six Feetech STS3215 servos, $122 in parts)
 with the gripper bracket removed; the gripper servo is reused as a wrist-yaw
-joint carrying a printed GoPro-pattern mount for the same camera. Its
-kinematics are fitted once from 60 tile-verified poses
+joint carrying a printed GoPro-pattern mount for the same camera, so the one
+camera moves between head and robot without re-mounting. Two printed parts
+replace the gripper:
+
+- **`wrist_yaw_motor_housing`** takes the place of the gripper bracket on the
+  wrist-roll output and holds the sixth STS3215 as the wrist-yaw joint; print
+  `STL/wrist_yaw_motor_housing.stl`.
+- **`finger_mount_to_gopro_mount`** fits that servo's horn and presents the
+  GoPro pattern; print `STL/finger_mount_to_gopro_mount.stl`. The camera's
+  GoPro-pattern adapter clips in here, with `STL/44mm_gopro_mount_extender.stl`
+  between them if more reach is needed.
+
+Its kinematics are fitted once from 60 tile-verified poses
 (`so101_cam_kin.py`, 7 mm / 0.7° residual). At each session start it parks at
 the collector's median head pose and registers against the tiles; during
 teleoperation and rollouts it follows the gripper from the YAM's joint state
