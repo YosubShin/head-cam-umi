@@ -21,12 +21,12 @@ IMU, no SLAM, no fixed tracker, and one data stream instead of three.
 (c) The same camera on a six-joint positioner beside the robot during a rollout. The wrist fisheye on the glove and the fixed camera on the post serve the ablations only.</em></p>
 
 <p align="center">
-  <a href="media/head-collection-clip.mp4"><img src="media/head-collection-1p5x.gif" alt="Collecting one pick-and-place demonstration with the head camera and the glove, 1.5x speed" height="360"></a>
+  <a href="media/head-collection-clip.mp4"><img src="media/head-collection-1p5x.gif" alt="Collecting one pick-and-place demonstration with the head camera and the glove, 1.5x speed" height="400"></a>
   &nbsp;&nbsp;
-  <a href="media/head-rollout-clip.mp4"><img src="media/head-rollout-1p5x.gif" alt="The head camera's own view, from the positioner, of one placement-grid rollout of the head-camera policy, 1.5x speed" height="360"></a>
+  <a href="media/head-rollout-clip.mp4"><img src="media/head-rollout-1p5x.gif" alt="One placement-grid rollout of the head-camera policy, 1.5x speed: the fixed workspace camera above, the head camera on the positioner below" height="400"></a>
 </p>
 <p align="center"><em>Left: one glove demonstration at 1.5× (click for the <a href="media/head-collection-clip.mp4">clip</a>).
-Right: what the policy sees. The head camera's own view from the positioner during one placement-grid trial of the co-trained head-camera policy, at 1.5× (<a href="media/head-rollout-clip.mp4">clip</a>, 640×360 as recorded); the positioner keeps the gripper in view as it carries the block to the bin.</em></p>
+Right: one placement-grid trial of the co-trained head-camera policy at 1.5× (<a href="media/head-rollout-clip.mp4">clip</a>), recorded by two cameras at once. Top: the fixed workspace camera, which the policy does not see. Bottom: the head camera on the positioner, the policy's only observation, keeping the gripper in view as it carries the block to the bin.</em></p>
 
 | | |
 |---|---|
