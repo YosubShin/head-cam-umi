@@ -133,7 +133,7 @@ What the grid says, and how firmly:
 | [`calib/`](calib/) | the calibration files the paper's chain used: intrinsics, ball and gripper bundles, hand-eyes, tile layout, base-to-tile link, viewpoint model, positioner kinematics, width maps, episode split lists. Inventory in [`calib/README.md`](calib/README.md) |
 | [`STL/`](STL/), [`STEP/`](STEP/) | the printed parts that turn a YAM-UMI glove into this one, the robot-side ball mount and the GoPro-pattern camera adapters |
 | [`markers/`](markers/) | marker sheets: glove and robot rigs, the 60 mm AprilTag tiles, the ChArUco board |
-| [`docs/`](docs/) | collection runbook, camera certification gauntlet, the problems-and-fixes ledger, the hand-off doc for a second unit, the head-round validation curves (`docs/results/`) |
+| [`docs/`](docs/) | [what is in the raw glove sessions and how to process them](docs/RAW_DATA.md), collection runbook, camera certification gauntlet, the problems-and-fixes ledger, the hand-off doc for a second unit, the head-round validation curves (`docs/results/`) |
 | [`rollout_logs/grid_20261016/`](rollout_logs/grid_20261016/) | the final placement grid: `trials.jsonl` (200 scored trials), `placements.json`, `anecdotes.md` (the operator's notes). Videos and tick logs stay local |
 | [`media/`](media/) | teaser, GIFs and clips |
 
