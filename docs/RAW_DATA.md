@@ -125,9 +125,12 @@ session, with the calibration files that apply to these four.
    `calib/workspace_tiles_pilot_v3.json`) in each head frame and writes
    `calib/<stem>_cam_world.json` (`per_frame[k].T_cam_world`, with the tile
    count and RMS used as quality gates downstream). Head intrinsics:
-   `calib/B0587b_f3_intrinsics.json` is the file for every head session from
-   2026-10-09; `yam_glove5` is from 2026-10-08, so check which `B0587b`
-   intrinsics its solves were made with before reusing them.
+   `calib/B0587b_f3_intrinsics.json` is the file for every head session
+   here, `yam_glove5` included: the barrel was locked and calibrated on
+   2026-10-07 11:17 (after the focus-tune session, before `yam_glove4` and
+   `yam_glove5`) and not touched since; the glove5 `_cam_world.json` solves,
+   its builds and the viewpoint model all used it. The plain
+   `B0587b_intrinsics.json` is the 2026-09-07 focus (rehearsals only).
 3. **Fixed camera → world** (fallback poses, ablations).
    One static solve per rig state: `calib/forward_cam_world_yam_glove5_b0587.json`
    and `..._b0587.take1.json` for glove5, `calib/forward_cam_world_20261015.json`

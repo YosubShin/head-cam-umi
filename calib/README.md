@@ -10,7 +10,7 @@ Detection caches (`*_detections.*`), per-frame camera-pose solves
 | file | what |
 |---|---|
 | `B0587_intrinsics.json` | fixed forward B0587 4K (ablation camera) |
-| `B0587b_intrinsics.json`, `B0587b_f3_intrinsics.json` | the head camera (second B0587); `_f3` is the focus setting used for every head session since 2026-10-09 |
+| `B0587b_intrinsics.json`, `B0587b_f3_intrinsics.json` | the head camera (second B0587); `_f3` is the barrel position locked and calibrated on 2026-10-07 11:17 (after the focus-tune session) and used for every head-camera session since, `yam_glove4`/`yam_glove5` (10-07/10-08) included; the plain file is the 2026-09-07 focus (pre-glove rehearsals only) |
 | `fisheye_glove_yosub_intrinsics.json`, `fisheye_intrinsics.json` | the glove's wrist fisheye (ablation) and the robot's |
 | `*.example.json` | format examples for `cameras.json` and the robot bundles |
 
