@@ -164,3 +164,17 @@ session, with the calibration files that apply to these four.
 8. **Sanity check a session** before any of this:
    `python scripts/session_check.py <session> --unit yosub` reports per-episode
    pose and width coverage and tile visibility.
+
+## Also in the bucket (added 2026-11-06)
+
+For reproducing the paper's co-training (arms 1–4), beside the glove sessions:
+
+| path | content |
+|---|---|
+| `pilot/raw/yam_head12_b0587b{,.take1,.take2,.take3}.*`, `yam_head13_b0587b{,.take1}.*`, `yam_head14_b0587b.*` | the teleoperation sessions' head-camera stream (the forward and fisheye streams of these sessions are not uploaded; ask), with `_ts.json`, `_meta.json`, `_recorder.log`, and the positioner track `yam_head1{2,4}_so101cam_track.jsonl` |
+| `lerobot/yam_head12`, `yam_head13`, `yam_head14` | the teleop LeRobot logs from `record_yam_teleop.py` (joint state and the commanded target at 30 Hz; the 178 teleop episodes) |
+| `lerobot/pilot_head_Hgt` | the teleop half as trained: 178 episodes, head-camera view at 15 fps, encoder actions |
+| `lerobot/pilot_glove_HHs3` | the glove half: 200 episodes from glove5–8, head-camera labels |
+| `lerobot/pilot_mix_gHs3` | the co-trained set (arm 2): the two above concatenated, 378 episodes; arm 4 trains on the same set with `calib/train_eps_pilot_mix_gHs3_48.txt` |
+
+Fetch with `gcloud storage cp -r gs://head-cam-umi-raw/lerobot/<name> ~/.cache/huggingface/lerobot/`.
