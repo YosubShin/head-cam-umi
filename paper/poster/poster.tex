@@ -141,9 +141,9 @@
 \end{column}
 \end{columns}
 
-\begin{block}{Four rollouts}
+\begin{block}{One placement, seen by each policy}
   \includegraphics[width=\bw]{rollouts_poster.jpg}\par
-  \capt{Fixed workspace camera, each policy's own view inset. Left, placement 15: the head-camera policy carries the block to the bin; the wrist-camera policy, seeing only block and wall, drops it mid-carry. Right, placement 16: 48 teleoperated episodes alone never grasp; 48 plus 194 glove demos succeed.}
+  \capt{Placement 15, each row the frames that policy itself saw. The head camera keeps gripper and bin in one frame through the carry. The wrist fisheye sees only the block and the wall from the grasp on, and the block is dropped before the bin comes into view. The fixed camera sees the whole scene and succeeds here, but it is the weakest view overall.}
 \end{block}
 
 \end{column}
