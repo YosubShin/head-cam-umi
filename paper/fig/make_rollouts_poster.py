@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Poster rollout strip: one placement (15), three rows, each the policy's OWN view: the head camera on the
+"""Poster rollout strip: one placement (8), three rows, each the policy's OWN view: the head camera on the
 moving positioner (arm 2), the wrist fisheye (arm 5, UMI recipe) and the fixed forward camera (arm 7).
 Seven moments per row for the 16:9 views; the fixed camera's observation is square, so its row packs twelve
 square frames into the same width rather than cropping them.
@@ -12,12 +12,12 @@ import cv2, numpy as np
 
 G = Path(__file__).resolve().parents[2] / "rollout_logs/grid_20261016"
 OUT = Path(__file__).resolve().parent / "rollouts_poster.jpg"
-SC = 15
+SC = 8
 H, W = 360, 640
 ROWS = [  # policy, label, times (s)
-    ("mix_gHs3", "head camera on the moving positioner", [2, 6, 8, 12, 14, 16, 18]),
+    ("mix_gHs3", "head camera on the moving positioner", [2, 6, 8, 10, 12, 14, 16]),
     ("mix_FA", "wrist fisheye (UMI)", [2, 6, 8, 10, 12, 14, 16]),
-    ("mix_FB", "fixed forward camera", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14]),
+    ("mix_FB", "fixed forward camera", [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16]),
 ]
 NICE = {"success": "success", "no_grasp": "no grasp", "dropped_before_bin": "dropped during the carry", "dropped_at_bin": "dropped at the bin", "timeout": "timeout"}
 R = {(r["policy"], r["scene"]): r for r in map(json.loads, open(G / "trials.jsonl"))}
