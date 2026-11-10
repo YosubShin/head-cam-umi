@@ -68,29 +68,37 @@
 % ===== left two thirds =====
 \begin{column}{0.655\linewidth}
 
-\begin{block}{One head camera: the policy\textquotesingle s observation and the pose labels}
-  \centering
-  \includegraphics[width=0.72\bw]{teaser_poster.jpg}\par
-  \vspace{0.4ex}
-  \begin{minipage}{\bw}\capt{(a) A \$122 4K head camera, a \$22 electronics-free glove, four paper tiles.
-  (b) The camera's own frame: tiles give the camera pose, the ball the gripper pose, the jaw tags the opening.
-  (c) At deployment the same camera rides a \$122 six-joint arm (d) beside the robot.}\end{minipage}
-\end{block}
-
 \begin{columns}[t,totalwidth=\linewidth]
-\begin{column}{0.325\linewidth}
-\begin{block}{Why a head cam}
+\begin{column}{0.3\linewidth}
+\begin{block}{Why a head camera only}
   \begin{itemize}
     \item Wrist devices need a \key{second stream} to track the gripper: SLAM, an IMU, a controller or an external camera.
     \item \key{Gaze leads the hand}: the gripper stays in view, at arm's length, with the goal.
     \item The frames the policy sees are the frames that \key{carry the labels}.
   \end{itemize}
   No SLAM, no IMU, no wrist camera, no cables.
+  \vspace{0.8ex}
+  \begin{center}
+  \bignum{0.48\linewidth}{\$144}\bignum{0.48\linewidth}{103\,g}\\[0.3ex]
+  \numlabel{0.48\linewidth}{glove, camera, strap}\numlabel{0.48\linewidth}{on the head}
+  \end{center}
 \end{block}
 \end{column}
+\begin{column}{0.7\linewidth}
+\begin{block}{One head camera: the policy\textquotesingle s observation and the pose labels}
+  \centering
+  \includegraphics[width=\bw]{teaser_poster.jpg}\par
+  \vspace{0.4ex}
+  \begin{minipage}{\bw}\capt{(a) A \$122 4K head camera, a \$22 electronics-free glove, four paper tiles.
+  (b) The camera's own frame: tiles give the camera pose, the ball the gripper pose, the jaw tags the opening.
+  (c) At deployment the same camera rides a \$122 six-joint arm (d) beside the robot.}\end{minipage}
+\end{block}
+\end{column}
+\end{columns}
 
+\begin{columns}[t,totalwidth=\linewidth]
 \begin{column}{0.325\linewidth}
-\begin{block}{Labels from one frame}
+\begin{block}{Label accuracy}
   \begin{itemize}
     \item \key{Camera pose} from the paper tiles, refit from the footage to \SI{0.5}{px}.
     \item \key{Gripper pose} by PnP on a \SI{15}{mm} ArUco dodecahedron.
@@ -106,10 +114,22 @@
 \end{column}
 
 \begin{column}{0.325\linewidth}
-\begin{block}{The robot's head}
+\begin{block}{Collection}
+  \begin{center}
+  \bignum{0.48\linewidth}{2--3$\times$}\bignum{0.48\linewidth}{198}\\[0.3ex]
+  \numlabel{0.48\linewidth}{demos per minute vs teleop}\numlabel{0.48\linewidth}{demos in four sessions}\\[1.2ex]
+  \bignum{0.48\linewidth}{6--8\,s}\bignum{0.48\linewidth}{0}\\[0.3ex]
+  \numlabel{0.48\linewidth}{per demo; teleop 14\,s}\numlabel{0.48\linewidth}{robot time}
+  \end{center}
+  \capt{Continuous recording, episodes cut by a keypress; 0.7--7.4\,\% of frames dropped for tracking.}
+\end{block}
+\end{column}
+
+\begin{column}{0.325\linewidth}
+\begin{block}{Deployment}
   \begin{itemize}
-    \item A \$122 six-joint arm carries the same camera beside the YAM.
-    \item It follows the gripper \key{from the robot's encoders alone}, in teleoperation and in rollouts.
+    \item The same camera on a \$122 six-joint arm beside the YAM.
+    \item It follows the gripper \key{from the robot's encoders alone}, in teleoperation and in rollouts, so the policy sees what the collector saw.
   \end{itemize}
   \vspace{0.3ex}
   \begin{center}
@@ -125,21 +145,10 @@
   \capt{Fixed workspace camera, each policy's own view inset. Left, placement 15: the head-camera policy carries the block to the bin; the wrist-camera policy, seeing only block and wall, drops it mid-carry. Right, placement 16: 48 teleoperated episodes alone never grasp; 48 plus 194 glove demos succeed.}
 \end{block}
 
-\begin{block}{Limits and next}
-  One task, one collector, one tile layout. Glove-only policies do not transfer: co-training is required. Next: bimanual, tile-free in the wild.
-\end{block}
-
 \end{column}
 
 % ===== right third: results =====
 \begin{column}{0.335\linewidth}
-
-\begin{block}{Collection}
-  \begin{center}
-  \bignum{0.24\linewidth}{\$144}\bignum{0.24\linewidth}{103\,g}\bignum{0.24\linewidth}{2--3$\times$}\bignum{0.24\linewidth}{198}\\[0.3ex]
-  \numlabel{0.24\linewidth}{glove, camera, strap}\numlabel{0.24\linewidth}{on the head}\numlabel{0.24\linewidth}{demos/min vs teleop}\numlabel{0.24\linewidth}{demos in four sessions}
-  \end{center}
-\end{block}
 
 \begin{block}{Eight policies, one recipe}
   \capt{ACT, joint-space actions, same 194 glove demos in every mix. 25 placements, one trial each.}
@@ -184,6 +193,9 @@
   \capt{Robot validation loss against teleoperation budget, with (dashed) and without the glove set. Added to 48 teleoperated episodes: 10/25 to 17/25, level with 172 alone.}
 \end{block}
 
+\begin{block}{Limits and next}
+  One task, one collector, one tile layout. Glove-only policies do not transfer: co-training is required. Next: bimanual, tile-free in the wild.
+\end{block}
 
 \end{column}
 \end{columns}
