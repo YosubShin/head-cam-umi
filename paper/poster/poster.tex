@@ -13,6 +13,7 @@
 \definecolor{paper}{HTML}{FBFAF7}
 \definecolor{panel}{HTML}{FFFFFF}
 \definecolor{muted}{HTML}{5C6670}
+\definecolor{nograsp}{HTML}{B8B2A7}
 \setbeamertemplate{navigation symbols}{}
 \setbeamercolor{background canvas}{bg=paper}
 \setbeamercolor{normal text}{fg=ink}
@@ -149,25 +150,17 @@
 
 % ===== right third: results =====
 \begin{column}{0.335\linewidth}
-\begin{block}{Glove demos improve a full teleop set}
+\begin{block}{194 glove demos stretch a small teleop set}
   \capt{Eight ACT policies, joint-space actions. Rollouts: 25 placements, one trial each, \SI{60}{s}. Every co-trained mix uses the same 194 glove demos.}
   \begin{center}
-  \bignum{0.48\linewidth}{18/25}\bignum{0.48\linewidth}{20/25}\\[0.3ex]
-  \numlabel{0.48\linewidth}{172 teleop episodes}\numlabel{0.48\linewidth}{172 teleop + 194 glove}
-  \end{center}
-  Validation loss on held-out teleop episodes 0.318 $\to$ 0.263.
-\end{block}
-
-\begin{block}{\ldots and stretch a small one}
-  \begin{center}
-  \bignum{0.32\linewidth}{10/25}\bignum{0.32\linewidth}{17/25}\bignum{0.32\linewidth}{18/25}\\[0.3ex]
-  \numlabel{0.32\linewidth}{48 teleop}\numlabel{0.32\linewidth}{48 teleop + 194 glove}\numlabel{0.32\linewidth}{172 teleop, no glove}
+  \bignum{0.32\linewidth}{10/25}\bignum{0.32\linewidth}{17/25}\bignum{0.32\linewidth}{1 : 2--3}\\[0.3ex]
+  \numlabel{0.32\linewidth}{48 teleop episodes}\numlabel{0.32\linewidth}{48 teleop + 194 glove}\numlabel{0.32\linewidth}{teleop episode : glove demos}
   \end{center}
   \begin{minipage}[c]{0.5\linewidth}\includegraphics[width=\linewidth]{budget.pdf}\end{minipage}\hfill
-  \begin{minipage}[c]{0.47\linewidth}\small Loss 0.464 $\to$ 0.295. On the teleop-only curve the glove set is worth \key{65--100 teleop episodes}: 2--3 glove demos per teleoperated one. The gain shrinks as the teleop budget grows.\end{minipage}
+  \begin{minipage}[c]{0.47\linewidth}\small\RaggedRight 9 placements won to 2 lost ($p = 0.065$); loss 0.464 $\to$ 0.295, the level of 96--172 teleop episodes. On the teleop-only curve the glove set is worth \key{65--100 teleop episodes}, an exchange rate of 2--3 glove demos per teleoperated one. Added to all 172 it still helps: 18/25 $\to$ 20/25, loss 0.318 $\to$ 0.263.\end{minipage}
 \end{block}
 
-\begin{block}{Head-camera labels replace the encoders}
+\begin{block}{Head-camera labels can replace the encoders}
   \begin{center}
   \bignum{0.48\linewidth}{0.318}\bignum{0.48\linewidth}{0.328}\\[0.3ex]
   \numlabel{0.48\linewidth}{teleop labelled by encoders}\numlabel{0.48\linewidth}{teleop labelled by the head camera}
@@ -175,12 +168,26 @@
   Same 172 episodes, same held-out targets: 3\,\% of loss. On the robot 18/25 vs 15/25, within noise ($p = 0.58$).
 \end{block}
 
-\begin{block}{The view decides whether the task completes}
+\begin{block}{Where each view fails}
   \begin{center}
-  \bignum{0.24\linewidth}{20/25}\bignum{0.24\linewidth}{15/25}\bignum{0.24\linewidth}{14/25}\bignum{0.24\linewidth}{12/25}\\[0.3ex]
-  \numlabel{0.24\linewidth}{head camera}\numlabel{0.24\linewidth}{wrist fisheye (UMI)}\numlabel{0.24\linewidth}{wrist fisheye, head labels}\numlabel{0.24\linewidth}{fixed camera}
+  \begin{tikzpicture}
+    \pgfmathsetlengthmacro{\u}{(\bw-9.8cm)/25}
+    \foreach \name/\s/\n/\d/\y in {head camera/20/5/0/3, {wrist fisheye (UMI)}/15/6/4/2, {wrist fisheye, head labels}/14/3/8/1, fixed camera/12/12/1/0} {
+      \node[anchor=east,font=\small] at (9.6cm, \y*1.45cm) {\name};
+      \fill[teal] (9.8cm, \y*1.45cm-0.5cm) rectangle ++(\s*\u, 1cm);
+      \node[white,font=\small\bfseries] at (9.8cm+\s*\u/2, \y*1.45cm) {\s};
+      \fill[nograsp] (9.8cm+\s*\u, \y*1.45cm-0.5cm) rectangle ++(\n*\u, 1cm);
+      \node[ink,font=\small\bfseries] at (9.8cm+\s*\u+\n*\u/2, \y*1.45cm) {\n};
+      \ifnum\d>0
+        \fill[amber] (9.8cm+\s*\u+\n*\u, \y*1.45cm-0.5cm) rectangle ++(\d*\u, 1cm);
+        \node[white,font=\small\bfseries] at (9.8cm+\s*\u+\n*\u+\d*\u/2, \y*1.45cm) {\d};
+      \fi
+    }
+    \node[anchor=west,font=\small,color=muted] at (9.8cm, -1.2cm) {\tikz\fill[teal] (0,0) rectangle (0.5cm,0.5cm); success\quad \tikz\fill[nograsp] (0,0) rectangle (0.5cm,0.5cm); no grasp\quad \tikz\fill[amber] (0,0) rectangle (0.5cm,0.5cm); dropped during the carry or at the bin};
+  \end{tikzpicture}
   \end{center}
-  All four co-trained, offline loss within 0.011 of each other. Head-camera policies fail by never grasping; wrist-camera policies \key{drop the block mid-carry} (12 of 21 failures vs 1 of 45), every time while the fisheye looked away from the bin.
+  Offline the four co-trained views sit within 0.011 of each other. On the robot, wrist-camera policies \key{drop the block mid-carry}, every time while the fisheye looked away from the bin. The head camera and the fixed camera keep the bin in frame and almost never drop; they fail by not grasping.
+  \capt{Caveat: the teleoperator watched the head-camera preview while demonstrating.}
 \end{block}
 
 \begin{block}{It is the view, not the labels}
@@ -191,7 +198,7 @@
 \end{block}
 
 \begin{block}{Limits and next}
-  One task, one collector, one tile layout. Glove-only policies do not transfer: co-training is required. Next: bimanual, tile-free in the wild.
+  One task, one collector, one tile layout; teleoperation watched the head-camera view. Glove-only policies do not transfer: co-training is required. Next: bimanual, tile-free in the wild.
 \end{block}
 
 \end{column}
