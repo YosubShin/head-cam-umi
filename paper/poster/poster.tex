@@ -1,0 +1,172 @@
+% UMI Arena (CoRL 2026) poster, 48 x 36 in landscape. Build: latexmk -pdf poster.tex
+\documentclass[final]{beamer}
+\usepackage[orientation=landscape,size=custom,width=121.92,height=91.44,scale=1.15]{beamerposter}
+\usepackage[T1]{fontenc}\usepackage[scaled=0.95]{helvet}\renewcommand{\familydefault}{\sfdefault}
+\usepackage{booktabs,siunitx,qrcode,tikz,graphicx,ragged2e,colortbl}
+\usetikzlibrary{calc}
+\graphicspath{{../fig/}}
+
+% ---------- theme ----------
+\definecolor{ink}{HTML}{1E2A38}
+\definecolor{navy}{HTML}{16324F}
+\definecolor{teal}{HTML}{2A7F8F}
+\definecolor{amber}{HTML}{D9822B}
+\definecolor{paper}{HTML}{FBFAF7}
+\definecolor{panel}{HTML}{FFFFFF}
+\definecolor{rule}{HTML}{D6D2C8}
+\definecolor{muted}{HTML}{5C6670}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{background canvas}{bg=paper}
+\setbeamercolor{normal text}{fg=ink}
+\setbeamercolor{block title}{fg=navy,bg=panel}
+\setbeamercolor{block body}{fg=ink,bg=panel}
+\setbeamerfont{block title}{size=\Large,series=\bfseries}
+\setbeamertemplate{block begin}{%
+  \begin{beamercolorbox}[colsep*=0.4ex,dp=0.6ex,leftskip=1.2em,rightskip=1.2em]{block title}%
+    \usebeamerfont{block title}\insertblocktitle\par
+    \vskip-0.4ex\textcolor{teal}{\rule{\bw}{2.5pt}}%
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[colsep*=0.4ex,vmode,leftskip=1.2em,rightskip=1.2em]{block body}\justifying}
+\setbeamertemplate{block end}{\vskip0.8ex\end{beamercolorbox}\vskip1.5ex}
+\setlength{\parskip}{0.6ex}
+\newcommand{\bignum}[2]{\begin{minipage}[t]{#1}\centering{\fontsize{72}{74}\selectfont\bfseries\color{amber}#2}\end{minipage}}
+\newcommand{\numlabel}[2]{\begin{minipage}[t]{#1}\centering\small\color{muted}#2\end{minipage}}
+\newcommand{\bw}{\dimexpr\linewidth-2.4em\relax}
+\newcommand{\key}[1]{\textbf{\color{navy}#1}}
+
+\begin{document}
+\begin{frame}[t]
+\vspace*{-1.4cm}
+% ---------- header ----------
+\begin{tikzpicture}[overlay,remember picture]
+  \fill[navy] (current page.north west) rectangle ([yshift=-13.4cm]current page.north east);
+\end{tikzpicture}
+\noindent\parbox[t][11.4cm][c]{\paperwidth}{%
+\begin{columns}[c,totalwidth=\paperwidth]
+\begin{column}{0.86\paperwidth}
+  \hspace*{2.4cm}\begin{minipage}{0.95\linewidth}
+  {\fontsize{74}{80}\selectfont\bfseries\color{white}A Head Camera Is (Almost) All You Need\par}
+  \vspace{0.6cm}
+  {\fontsize{40}{46}\selectfont\color{white!85!navy}An electronics-free UMI glove labelled and observed by one moving camera\par}
+  \vspace{0.9cm}
+  {\fontsize{32}{36}\selectfont\color{white}Yosub Shin$^{1}$ \quad Yuan Liu$^{2}$ \quad Igor Molybog$^{1}$\hspace{2.5cm}
+   {\fontsize{26}{30}\selectfont\color{white!80!navy}$^1$University of Hawai\textquotesingle i at M\=anoa \quad $^2$Independent}\par}
+  \end{minipage}
+\end{column}
+\begin{column}{0.14\paperwidth}
+  \centering
+  \colorbox{white}{\qrcode[height=8.4cm]{https://arxiv.org/abs/2610.27622}}\par
+  \vspace{0.3cm}{\small\color{white}arXiv:2610.27622}\par{\small\color{white!80!navy}The UMI Arena, CoRL 2026}
+\end{column}
+\end{columns}}
+\vspace{0.6cm}
+
+% ---------- body ----------
+\begin{columns}[t,totalwidth=0.975\paperwidth]
+
+% ===== left two thirds =====
+\begin{column}{0.655\linewidth}
+
+\begin{block}{One camera, two mounts}
+  \centering
+  \includegraphics[width=\bw]{teaser.jpg}\par
+  \vspace{0.4ex}
+  \begin{minipage}{\bw}\small\color{muted}\justifying
+  (a) The collector wears a \$122 4K camera and holds the \$22 electronics-free glove over four paper AprilTag tiles. (b) The camera's own frame: tiles (green) give the camera pose, the 11-face ball (red) the gripper pose, the jaw tags (blue, yellow) the opening. (c) At deployment the same camera rides a \$122 six-joint arm beside the robot and follows the gripper from the robot's joint state.
+  \end{minipage}
+\end{block}
+
+\begin{columns}[t,totalwidth=\linewidth]
+\begin{column}{0.49\linewidth}
+
+\begin{block}{Why}
+  Every UMI-style device answers two questions: \key{what does the policy see} and \key{how is the gripper tracked}. The usual answer puts both on the wrist: a fisheye plus SLAM, an IMU, a VR controller or a fixed external camera, each a second stream to timestamp, synchronise and cross-calibrate, and a view tied to the hand that loses the goal once the hand turns away.
+
+  We answer both with \key{one head-worn camera}. Gaze precedes the hand, so the head keeps the gripper at arm's length, unoccluded by the torso, with the workspace around it. The same frames the policy will see also carry the labels. No SLAM, no IMU, no wrist camera, no cables.
+\end{block}
+
+\begin{block}{Labels from one frame}
+  \begin{itemize}
+    \item \key{Camera pose} from the tiles; the layout is refit from the footage itself (\SI{3.4}{px} to \SI{0.5}{px} reprojection), single-tile frames are chained under velocity bounds.
+    \item \key{Gripper pose} by PnP over the visible faces of a \SI{15}{mm} ArUco dodecahedron on the back of the hand.
+    \item \key{Jaw width} from printed tails on each jaw: one face is always visible from the head; a per-unit linear map, \SI{0.9}{}--\SI{3.8}{mm} RMS on calipered spacers.
+  \end{itemize}
+  Against the robot's encoders, with the ball on the YAM: tool point within \key{\SI{6.5}{mm} and \SI{1.6}{\degree}} median; width within \key{\SI{3.5}{\percent} of stroke} (\SI{2.3}{\percent} closed), flat over workspace and viewing angle; a label on \key{93--100\,\%} of frames. A fixed camera on the same demonstrations loses 8--22\,\% to the collector's body.
+\end{block}
+
+\end{column}
+\begin{column}{0.49\linewidth}
+
+\begin{block}{The robot's head}
+  A six-joint SO-101 arm (\$122 in parts) carries the camera beside the YAM. Kinematics fitted once from 60 tile-verified poses (\SI{7}{mm}, \SI{0.7}{\degree}). Each session it parks at the collector's median head pose, registers against the tiles, and then tracks the gripper \key{from the robot's encoders alone}: a fixed-gain bearing controller plus a ridge-regression residual fitted on about 100 glove episodes reproduces head motion relative to the hand, \key{\SI{46}{mm} / \SI{5.4}{\degree}} head-pose error on held-out episodes against \SI{87}{mm} / \SI{7.0}{\degree} for a static camera. It frames the gripper where the collector did (centroid 0.37/0.62 vs 0.38/0.60), identically in teleoperation and rollouts.
+\end{block}
+
+\begin{block}{Collection}
+  \begin{center}
+  \bignum{0.28\linewidth}{\$144}\bignum{0.28\linewidth}{103\,g}\bignum{0.33\linewidth}{2--3$\times$}\\[0.3ex]
+  \numlabel{0.28\linewidth}{glove + camera + strap}\numlabel{0.28\linewidth}{worn on the head}\numlabel{0.33\linewidth}{demos per minute vs teleop}
+  \end{center}
+  \vspace{0.6ex}
+  Continuous recording with keypress episode boundaries, median \SI{6}{}--\SI{8}{s} per pick-and-place against \SI{14}{s} teleoperated, in parallel and without robot time. Four sessions: 198 demonstrations, 50k frames, 0.7--7.4\,\% of frames cut to tracking dropouts.
+\end{block}
+
+\begin{block}{Limitations and next}
+  One task, one collector, one tile layout; the positioner lags \SI{0.4}{s}; paired tests at 25 placements sit at $p \geq 0.06$ with a consistent ranking. Glove-only policies do not transfer (the camera sees the forearm): co-training is required. Next: bimanual with a second glove and its own tag ids, multi-tile workspaces, tile-free in-the-wild sessions, a second task.
+\end{block}
+
+\end{column}
+\end{columns}
+\end{column}
+
+% ===== right third: results =====
+\begin{column}{0.335\linewidth}
+
+\begin{block}{Eight policies, one recipe}
+  ACT in LeRobot, joint-space actions, same 194 glove segments in every mix, best checkpoint by validation loss on 6 held-out teleoperated episodes. 25 placements, one trial each.
+  \vspace{0.5ex}
+  \begin{center}\normalsize
+  \setlength{\tabcolsep}{6pt}\renewcommand{\arraystretch}{1.15}
+  \begin{tabular}{@{}clcc@{}}
+    \toprule
+    \# & Policy (glove labels $\to$ observation) & Val & Success \\
+    \midrule
+    1 & teleop only, 172 ep.\ $\to$ head cam & 0.318 & 18/25 \\
+    \rowcolor{amber!15}
+    2 & \textbf{device}: head $\to$ head, 172\,+\,194 & \textbf{0.263} & \textbf{20/25} \\
+    3 & teleop only, 48 ep.\ $\to$ head cam & 0.464 & 10/25 \\
+    \rowcolor{amber!15}
+    4 & \textbf{device, low budget}, 48\,+\,194 & 0.295 & \textbf{17/25} \\
+    5 & wrist UMI: fixed $\to$ wrist fisheye & 0.257 & 15/25 \\
+    6 & head-cam labels for encoders & 0.328 & 15/25 \\
+    7 & fixed camera as the system & 0.256 & 12/25 \\
+    8 & head labels $\to$ wrist fisheye & 0.252 & 14/25 \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{block}
+
+\begin{block}{What the rollouts say}
+  \begin{center}
+  \bignum{0.3\linewidth}{20/25}\bignum{0.3\linewidth}{15/25}\bignum{0.3\linewidth}{12/25}\\[0.3ex]
+  \numlabel{0.3\linewidth}{head camera}\numlabel{0.3\linewidth}{wrist fisheye (UMI)}\numlabel{0.3\linewidth}{fixed camera}
+  \end{center}
+  \vspace{0.6ex}
+  \key{The view decides how a policy fails.} Head-camera policies fail by never grasping; wrist-camera policies drop the block mid-carry (12 of 21 failures, against 1 of 45 for the head view), every drop while the fisheye looked away from the bin. Same labels, other view (8 vs 2): 20/25 falls to 14/25. Same view, other labels (8 vs 5): indistinguishable.
+
+  \key{Head-camera labels cost 3\,\% of validation loss} against encoders (arm 6 vs 1), within noise on the robot.
+
+  \key{194 glove demonstrations stretch a small teleop set.} Added to 48 teleoperated episodes: 10/25 to 17/25, level with 172 teleoperated episodes alone (18/25). By the budget curve the glove set is worth 65--100 teleoperated episodes, 2--3 glove demonstrations per teleoperated one.
+  \begin{center}\includegraphics[width=0.6\linewidth]{budget.pdf}\end{center}
+  \vspace{-0.5ex}
+  {\small\color{muted}Robot validation loss against teleoperation budget, with (dashed) and without the glove set.}
+\end{block}
+
+\begin{block}{One placement, two views}
+  \includegraphics[width=\bw,trim=0 552bp 0 0,clip]{rollouts.jpg}\par
+  {\small\color{muted}Scene 16 at 2, 6, 10 and \SI{14}{s}, each policy's own view inset. Top: the head-camera policy keeps gripper and bin in one frame. Bottom: the wrist-camera policy holds the block and the far wall during the carry, and drops it.}
+\end{block}
+
+\end{column}
+\end{columns}
+\end{frame}
+\end{document}
