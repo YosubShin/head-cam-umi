@@ -149,48 +149,45 @@
 
 % ===== right third: results =====
 \begin{column}{0.335\linewidth}
-
-\begin{block}{Eight policies, one recipe}
-  \capt{ACT, joint-space actions, same 194 glove demos in every mix. 25 placements, one trial each.}
-  \vspace{0.3ex}
-  \begin{center}\normalsize
-  \setlength{\tabcolsep}{6pt}\renewcommand{\arraystretch}{1.15}
-  \begin{tabular}{@{}clcc@{}}
-    \toprule
-    \# & Policy (glove labels $\to$ observation) & Val & Success \\
-    \midrule
-    1 & teleop only, 172 ep.\ $\to$ head cam & 0.318 & 18/25 \\
-    \rowcolor{amber!15}
-    2 & \textbf{device}: head $\to$ head, 172\,+\,194 & \textbf{0.263} & \textbf{20/25} \\
-    3 & teleop only, 48 ep.\ $\to$ head cam & 0.464 & 10/25 \\
-    \rowcolor{amber!15}
-    4 & \textbf{device, low budget}, 48\,+\,194 & 0.295 & \textbf{17/25} \\
-    5 & wrist UMI: fixed $\to$ wrist fisheye & 0.257 & 15/25 \\
-    6 & head-cam labels for encoders & 0.328 & 15/25 \\
-    7 & fixed camera as the system & 0.256 & 12/25 \\
-    8 & head labels $\to$ wrist fisheye & 0.252 & 14/25 \\
-    \bottomrule
-  \end{tabular}
-  \end{center}
-\end{block}
-
-\begin{block}{The view decides how a policy fails}
+\begin{block}{Glove demos improve a full teleop set}
+  \capt{Eight ACT policies, joint-space actions. Rollouts: 25 placements, one trial each, \SI{60}{s}. Every co-trained mix uses the same 194 glove demos.}
   \begin{center}
-  \bignum{0.3\linewidth}{20/25}\bignum{0.3\linewidth}{15/25}\bignum{0.3\linewidth}{12/25}\\[0.3ex]
-  \numlabel{0.3\linewidth}{head camera}\numlabel{0.3\linewidth}{wrist fisheye (UMI)}\numlabel{0.3\linewidth}{fixed camera}
+  \bignum{0.48\linewidth}{18/25}\bignum{0.48\linewidth}{20/25}\\[0.3ex]
+  \numlabel{0.48\linewidth}{172 teleop episodes}\numlabel{0.48\linewidth}{172 teleop + 194 glove}
   \end{center}
-  \vspace{0.5ex}
-  \begin{itemize}
-    \item Wrist policies \key{drop the block mid-carry} (12 of 21 failures), always while looking away from the bin. Head policies: 1 of 45.
-    \item Same labels, other view (arms 8 vs 2): 20/25 falls to 14/25. Same view, other labels (8 vs 5): no difference.
-    \item \key{Head-camera labels} cost 3\,\% of validation loss against encoders, nothing on the robot (6 vs 1).
-  \end{itemize}
+  Validation loss on held-out teleop episodes 0.318 $\to$ 0.263.
 \end{block}
 
-\begin{block}{194 glove demos $\approx$ 65--100 teleoperated episodes}
-  \begin{center}\includegraphics[width=0.8\linewidth]{budget.pdf}\end{center}
-  \vspace{-0.5ex}
-  \capt{Robot validation loss against teleoperation budget, with (dashed) and without the glove set. Added to 48 teleoperated episodes: 10/25 to 17/25, level with 172 alone.}
+\begin{block}{\ldots and stretch a small one}
+  \begin{center}
+  \bignum{0.32\linewidth}{10/25}\bignum{0.32\linewidth}{17/25}\bignum{0.32\linewidth}{18/25}\\[0.3ex]
+  \numlabel{0.32\linewidth}{48 teleop}\numlabel{0.32\linewidth}{48 teleop + 194 glove}\numlabel{0.32\linewidth}{172 teleop, no glove}
+  \end{center}
+  \begin{minipage}[c]{0.5\linewidth}\includegraphics[width=\linewidth]{budget.pdf}\end{minipage}\hfill
+  \begin{minipage}[c]{0.47\linewidth}\small Loss 0.464 $\to$ 0.295. On the teleop-only curve the glove set is worth \key{65--100 teleop episodes}: 2--3 glove demos per teleoperated one. The gain shrinks as the teleop budget grows.\end{minipage}
+\end{block}
+
+\begin{block}{Head-camera labels replace the encoders}
+  \begin{center}
+  \bignum{0.48\linewidth}{0.318}\bignum{0.48\linewidth}{0.328}\\[0.3ex]
+  \numlabel{0.48\linewidth}{teleop labelled by encoders}\numlabel{0.48\linewidth}{teleop labelled by the head camera}
+  \end{center}
+  Same 172 episodes, same held-out targets: 3\,\% of loss. On the robot 18/25 vs 15/25, within noise ($p = 0.58$).
+\end{block}
+
+\begin{block}{The view decides whether the task completes}
+  \begin{center}
+  \bignum{0.24\linewidth}{20/25}\bignum{0.24\linewidth}{15/25}\bignum{0.24\linewidth}{14/25}\bignum{0.24\linewidth}{12/25}\\[0.3ex]
+  \numlabel{0.24\linewidth}{head camera}\numlabel{0.24\linewidth}{wrist fisheye (UMI)}\numlabel{0.24\linewidth}{wrist fisheye, head labels}\numlabel{0.24\linewidth}{fixed camera}
+  \end{center}
+  All four co-trained, offline loss within 0.011 of each other. Head-camera policies fail by never grasping; wrist-camera policies \key{drop the block mid-carry} (12 of 21 failures vs 1 of 45), every time while the fisheye looked away from the bin.
+\end{block}
+
+\begin{block}{It is the view, not the labels}
+  \begin{itemize}
+    \item Same wrist view, labels from the fixed camera or from the head camera: \key{15/25 vs 14/25}, no change.
+    \item Same head labels, wrist view or head view: \key{14/25 $\to$ 20/25}, and the drops disappear.
+  \end{itemize}
 \end{block}
 
 \begin{block}{Limits and next}
