@@ -143,7 +143,7 @@
 
 \begin{block}{One placement, seen by each policy}
   \includegraphics[width=\bw]{rollouts_poster.jpg}\par
-  \capt{Placement 23, each row the frames that policy itself saw. The head camera keeps gripper and bin in one frame through the carry. The wrist fisheye sees only the block and the wall from the grasp on, and drops the block before reaching the bin. The fixed camera sees the whole scene but hovers over the block for \SI{40}{s} and never closes the gripper.}
+  \capt{Placement 23, each policy's own frames every \SI{2}{s} on one clock, black once its episode ended. Head camera: gripper and bin in one frame through the carry, done in \SI{16}{s}. Wrist fisheye: only block and wall after the grasp; drops the block before reaching the bin. Fixed camera: sees the whole scene but never closes the gripper (\SI{41}{s}, cut here).}
 \end{block}
 
 \end{column}
