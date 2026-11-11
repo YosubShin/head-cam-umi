@@ -3,7 +3,7 @@
 1920x1080, 30 fps, no audio.  python media/make_demo_loop.py -> media/demo-loop.mp4
 
 Inputs outside this repo: ../yam-umi/media (stills, the YAM-UMI paper video, the phone originals), the yam_glove6
-head stream (data/raw/nas) and, for the last segment, the spring glove's yam_glove9 head stream with its detection
+head stream (data/raw/nas, episodes 38 and 39 by frame index) and, for the last segment, the spring glove's yam_glove9 head stream with its detection
 cache and calib files (skipped when absent). Segments: title; the glove hardware; the original labelling (fixed
 camera + wrist fisheye, from the YAM-UMI video); bridge card; collection with the head camera (phone, 1.6x); the
 head camera's own frame with the three label sources drawn; deployment (phone + positioner camera); one placement
@@ -55,8 +55,11 @@ if not (S / "seg_coll.mp4").exists():  # phone: the four demonstrations of the t
     wins = [(2.0, 10.5), (19.5, 29.0), (41.0, 50.5), (61.0, 69.5)]
     fc = "".join(f"[0:v]trim={a}:{b},setpts=(PTS-STARTPTS)/1.6,scale=608:1080[v{k}];" for k, (a, b) in enumerate(wins)) + "".join(f"[v{k}]" for k in range(len(wins))) + f"concat=n={len(wins)}:v=1:a=0[v]"
     sh("ffmpeg", "-v", "error", "-y", "-i", str(PHONE), "-filter_complex", fc, "-map", "[v]", "-r", "30", "-an", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(S / "seg_coll.mp4"))
-if not (S / "seg_head_raw.mp4").exists():  # glove6 main take 169-190 s: episodes 38 and 39 with the reset between
-    sh("ffmpeg", "-v", "error", "-y", "-ss", "169", "-t", "21", "-i", str(HEAD), "-vf", "scale=1920:1080", "-r", "25", "-an", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", str(S / "seg_head_raw.mp4"))
+EP38, EP39 = (4474, 4636), (4805, 4970)  # glove6 episodes 38 and 39 as head-camera frame indices (marks against _ts.json; the stream ran at 26.3 fps, so the mkv's nominal 25 fps clock drifts)
+if not (S / "seg_head_raw.mp4").exists():  # the two episodes back to back, 5 frames of margin each
+    sel = f"between(n,{EP38[0] - 5},{EP38[1] + 5})+between(n,{EP39[0] - 5},{EP39[1] + 5})"
+    sh("ffmpeg", "-v", "error", "-y", "-i", str(HEAD), "-vf", f"select='{sel}',setpts=N/25/TB,scale=1920:1080", "-r", "25", "-an", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", str(S / "seg_head_raw.mp4"))
+EP2 = EP38[1] - EP38[0] + 11  # first frame of episode 39 in the cut
 if not (S / "seg_yam.mp4").exists():  # YAM-UMI paper video 23.5-34 s: one demonstration (2x) then the labels split screen
     sh("ffmpeg", "-v", "error", "-y", "-ss", "23.5", "-t", "10.5", "-i", str(YAM / "yam-umi-paper-video.mp4"), "-vf", "scale=1748:984", "-r", "30", "-an", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(S / "seg_yam.mp4"))
 if JUG.exists() and not (S / "seg_jug.mp4").exists():  # second lift of the take, 7.8-14.0 s at 1x, portrait 608x1080, plus two stills for the slit crops
@@ -266,14 +269,11 @@ def seg_labels():
     a = cv2.aruco; p = a.DetectorParameters(); p.cornerRefinementMethod = a.CORNER_REFINE_SUBPIX
     d4 = a.ArucoDetector(a.getPredefinedDictionary(a.DICT_4X4_50), p); d36 = a.ArucoDetector(a.getPredefinedDictionary(a.DICT_APRILTAG_36h11), p)
     cap = cv2.VideoCapture(str(S / "seg_head_raw.mp4")); n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)); first = None
-    SKIP = (int((176.8 - 169) * 25), int((182.6 - 169) * 25))  # the reset between episodes 38 (170.3-176.5 s) and 39 (182.9-189.2 s)
     for i in range(n):
         ok, fr = cap.read()
         if not ok: break
-        if SHORT and i < SKIP[1]: continue  # episode 39 only
-        if SKIP[0] <= i < SKIP[1]:
-            if i == SKIP[0]: emit(black, 6)
-            continue
+        if SHORT and i < EP2: continue  # episode 39 only
+        if i == EP2: emit(black, 6)  # the reset between the episodes is not in the cut
         g = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY); c4, i4, _ = d4.detectMarkers(g); c36, i36, _ = d36.detectMarkers(g)
         nt = 0 if i36 is None else len(i36); nb = nta = 0
         def poly(cs, col, w=4):
