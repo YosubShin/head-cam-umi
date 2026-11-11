@@ -167,8 +167,8 @@
     \toprule
     teleop labelled by & encoders & head camera & \\
     \midrule
-    validation loss & {\Large\bfseries\color{amber}0.318} & {\Large\bfseries\color{amber}0.328} & \small\color{muted}+3\,\% \\
-    rollouts & {\Large\bfseries\color{amber}18/25} & {\Large\bfseries\color{amber}15/25} & \small\color{muted}within noise ($p = 0.58$) \\
+    validation loss & 0.318 & 0.328 & \small\color{muted}+3\,\% \\
+    rollouts & 18/25 & 15/25 & \small\color{muted}within noise ($p = 0.58$) \\
     \bottomrule
   \end{tabular}
   \end{center}
@@ -180,12 +180,12 @@
   \setlength{\tabcolsep}{10pt}\renewcommand{\arraystretch}{1.1}
   \begin{tabular}{@{}lccc@{}}
     \toprule
-    failures of 25 & no grasp & dropped & \color{muted}success \\
+    failures of 25 & no grasp & \textbf{dropped} & \color{muted}success \\
     \midrule
-    head camera & {\Large\bfseries 5} & {\Large\bfseries\color{amber}0} & \color{muted}20 \\
-    wrist fisheye (UMI) & {\Large\bfseries 6} & {\Large\bfseries\color{amber}4} & \color{muted}15 \\
-    wrist fisheye, head labels & {\Large\bfseries 3} & {\Large\bfseries\color{amber}8} & \color{muted}14 \\
-    fixed camera & {\Large\bfseries 12} & {\Large\bfseries\color{amber}1} & \color{muted}12 \\
+    head camera & 5 & \textbf{0} & \color{muted}20 \\
+    wrist fisheye (UMI) & 6 & \textbf{4} & \color{muted}15 \\
+    wrist fisheye, head labels & 3 & \textbf{8} & \color{muted}14 \\
+    fixed camera & 12 & \textbf{1} & \color{muted}12 \\
     \bottomrule
   \end{tabular}
   \end{center}
