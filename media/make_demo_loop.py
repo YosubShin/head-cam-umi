@@ -230,7 +230,7 @@ def seg_yam():
     while True:
         ok, fr = cap.read(); i += 1
         if not ok: break
-        if SHORT and not 105 <= i < 240: continue  # 3.5-8.0 s: the end of the demonstration and the labels split screen
+        if SHORT and not 124 <= i < 258: continue  # 4.1-8.6 s: the labels split screen only
         out = base.copy(); out[100:1050, 116:1804] = cv2.resize(fr, (1688, 950), interpolation=cv2.INTER_AREA)
         out = header_bar(out, "2", "Labelled by a fixed camera and the wrist fisheye: no IMU, no SLAM")
         if first is None: first = out
