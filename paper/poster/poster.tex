@@ -151,7 +151,7 @@
 % ===== right third: results =====
 \begin{column}{0.335\linewidth}
 \begin{block}{Cheap glove demos complement a small teleop set}
-  \begin{minipage}[c]{0.5\linewidth}\includegraphics[width=\linewidth]{budget_poster.pdf}\end{minipage}\hfill
+  \begin{minipage}[c]{0.48\linewidth}\includegraphics[width=\linewidth]{budget_poster.pdf}\end{minipage}\hfill
   \begin{minipage}[c]{0.45\linewidth}\centering
     \bignum{\linewidth}{10/25}\\[0.2ex]\numlabel{\linewidth}{48 teleop episodes}\\[0.9ex]
     \bignum{\linewidth}{17/25}\\[0.2ex]\numlabel{\linewidth}{48 teleop + 194 glove demos}\\[0.9ex]
@@ -195,10 +195,31 @@
 \end{block}
 
 \begin{block}{It is the view, not the labels}
-  \begin{itemize}
-    \item Same wrist view, labels from the fixed camera or from the head camera: \key{15/25 vs 14/25}, no change.
-    \item Same head labels, wrist view or head view: \key{14/25 $\to$ 20/25}, and the drops disappear.
-  \end{itemize}
+  \setlength{\tabcolsep}{8pt}\renewcommand{\arraystretch}{1.1}
+  \begin{minipage}[t]{0.48\linewidth}\centering
+    \textbf{Same view, other labels}\\[0.2ex]
+    {\small\color{muted}wrist fisheye observation}\\[0.1ex]
+    \begin{tabular}{@{}lcc@{}}
+      \toprule
+      \textbf{glove labels from} & \textbf{success} & \textbf{dropped} \\
+      \midrule
+      \textbf{fixed camera} & 15/25 & 4 \\
+      \textbf{head camera} & 14/25 & 8 \\
+      \bottomrule
+    \end{tabular}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\linewidth}\centering
+    \textbf{Same labels, other view}\\[0.2ex]
+    {\small\color{muted}head-camera glove labels}\\[0.1ex]
+    \begin{tabular}{@{}lcc@{}}
+      \toprule
+      \textbf{observation} & \textbf{success} & \textbf{dropped} \\
+      \midrule
+      \textbf{wrist fisheye} & 14/25 & 8 \\
+      \textbf{head camera} & \textbf{20/25} & \textbf{0} \\
+      \bottomrule
+    \end{tabular}
+  \end{minipage}
 \end{block}
 
 \begin{block}{Limits and next}
