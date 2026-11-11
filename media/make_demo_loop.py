@@ -66,9 +66,8 @@ if SHORT and not (S / "seg_fixed_raw.mp4").exists():  # the fixed camera over th
     sh("ffmpeg", "-v", "error", "-y", "-i", str(FIXED), "-vf", f"select='{sel}',setpts=N/25/TB,scale=1300:732", "-r", "25", "-an", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", str(S / "seg_fixed_raw.mp4"))
 if not (S / "seg_yam.mp4").exists():  # YAM-UMI paper video 23.5-34 s: one demonstration (2x) then the labels split screen
     sh("ffmpeg", "-v", "error", "-y", "-ss", "23.5", "-t", "10.5", "-i", str(YAM / "yam-umi-paper-video.mp4"), "-vf", "scale=1748:984", "-r", "30", "-an", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(S / "seg_yam.mp4"))
-if JUG.exists() and not (S / "seg_jug.mp4").exists():  # second lift of the take, 7.8-14.0 s, portrait 608x1080, plus two stills for the slit crops
+if JUG.exists() and not (S / "seg_jug.mp4").exists():  # second lift of the take, 7.8-14.0 s, portrait 608x1080
     sh("ffmpeg", "-v", "error", "-y", "-ss", "7.8", "-t", "6.2", "-i", str(JUG), "-vf", "scale=608:1080", "-r", "30", "-an", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(S / "seg_jug.mp4"))
-    for t, name in (("9.0", "jug_rest.png"), ("11.0", "jug_up.png")): sh("ffmpeg", "-v", "error", "-y", "-ss", t, "-i", str(JUG), "-frames:v", "1", str(S / name))
 if not (S / "qr_yamumi.png").exists():  # QR for github.com/YosubShin/yam-umi via the LaTeX qrcode package
     (S / "qr.tex").write_text("\\documentclass{standalone}\\usepackage{qrcode}\\begin{document}\\qrcode[height=6cm]{https://github.com/YosubShin/yam-umi}\\end{document}\n")
     subprocess.run(["pdflatex", "-interaction=nonstopmode", "qr.tex"], cwd=S, check=True, capture_output=True); sh("pdftoppm", "-r", "300", "-png", "-singlefile", str(S / "qr.pdf"), str(S / "qr_yamumi"))
@@ -419,7 +418,7 @@ PARAS = [("Teleoperation stores the commanded width.", "On a block the operator 
 
 def spring_intro():
     """The explanation: the jug lift from the phone at 0.5x (9.0-13.0 s of the take) beside the measured-vs-commanded
-    context and the slit row at rest and under load. Returns the first frame, or None without the clip."""
+    context and the slit row tracked (cv2.TrackerMIL) and shown live. Returns the first frame, or None without the clip."""
     if not (S / "seg_jug.mp4").exists(): return None
     cap = cv2.VideoCapture(str(S / "seg_jug.mp4")); Wl = MW if SHORT else W; xr = 680; wr = Wl - xr - 40
     base = canvas(PAPER); d = ImageDraw.Draw(base); tf = 23 if SHORT else 26; hf = 30 if SHORT else 34; lh = int(tf * 1.32)
@@ -428,18 +427,23 @@ def spring_intro():
         text(d, (xr, yy), h, font(tf, True), NAVY); yy += lh
         for line in wrap(d, b, font(tf), wr): text(d, (xr, yy), line, font(tf), INK); yy += lh
         yy += 10
-    yy += 12; sh_ = 1000 - 36 - yy; sw = min(int(sh_ * 440 / 660), (wr - 40) // 2); sh_ = sw * 660 // 440
-    rest = cv2.imread(str(S / "jug_rest.png"))[550:850, 330:530]; up = cv2.imread(str(S / "jug_up.png"))[390:690, 400:600]
-    for k, (im_, lab) in enumerate(((rest, "jaws closed, jug on the table"), (up, "jug in the air"))):
-        cx = xr + k * (sw + 40); base.paste(to_pil(cv2.resize(im_, (sw, sh_), interpolation=cv2.INTER_CUBIC)), (cx, yy))
-        d.rectangle([cx, yy, cx + sw, yy + sh_], outline=TEAL if k else LIGHT, width=4); text(d, (cx + sw // 2, yy + sh_ + 20), lab, font(21, bool(k)), NAVY if k else MUTED, "mm")
-    text(d, (xr + 2 * sw + 60, yy + sh_ // 2), "the slit row, from the same clip", font(20), MUTED, "lm") if wr - 2 * sw - 40 > 220 else None
-    base = to_bgr(base); first = None; out = None
+    yy += 12; ch = 1000 - 36 - yy; cw = ch * 2 // 3; cx0 = xr + (wr - cw) // 2; cy0 = yy
+    d.rectangle([cx0 - 3, cy0 - 3, cx0 + cw + 3, cy0 + ch + 3], outline=TEAL, width=3)
+    text(d, (cx0 + cw // 2, cy0 + ch + 20), "the slit row, tracked in the clip", font(21, True), NAVY, "mm")
+    base = to_bgr(base); first = None; out = None; tr = None; c_s = None; b = None
+    sc = 608 / 720; bbox = (int((423 - 75) * sc), int((710 - 115) * sc), int(150 * sc), int(230 * sc))  # the slit row at 9.0 s (phone frame 720 wide)
     for i in range(157):
         ok, fr = cap.read()
         if not ok: break
         if i < 36: continue  # 9.0 s: the hand is on the handle
-        out = base.copy(); out[:, 40:648] = fr; out = header_bar(out, "7", "Next: grip force, still without electronics")
+        if tr is None: tr = cv2.TrackerMIL_create(); tr.init(fr, bbox); b = bbox
+        else:
+            okt, bt = tr.update(fr); b = bt if okt else b
+        c = np.array([b[0] + b[2] / 2, b[1] + b[3] / 2]); c_s = c if c_s is None else 0.6 * c_s + 0.4 * c
+        x0_ = int(min(max(c_s[0] - 93, 0), 608 - 186)); y0_ = int(min(max(c_s[1] - 140, 0), 1080 - 279))
+        out = base.copy(); out[:, 40:648] = fr; out[cy0:cy0 + ch, cx0:cx0 + cw] = cv2.resize(fr[y0_:y0_ + 279, x0_:x0_ + 186], (cw, ch), interpolation=cv2.INTER_CUBIC)
+        cv2.rectangle(out, (40 + x0_, y0_), (40 + x0_ + 186, y0_ + 279), rgb2bgr(TEAL), 2)
+        out = header_bar(out, "7", "Next: grip force, still without electronics")
         if first is None: first = out
         emit(out, 2)  # 0.5x
     emit(out, FPS // 2); fade(out, black, 0.3) if not SHORT else None
