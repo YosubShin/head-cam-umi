@@ -38,3 +38,4 @@ calib/*.npz.bak-*
 # Per-frame camera-pose solves are regenerable; offline review outputs.
 calib/*_cam_world.json
 /tmp/
+media/.demo_cache/
