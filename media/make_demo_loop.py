@@ -180,12 +180,15 @@ def seg_collection():
     base = canvas(PAPER); d = ImageDraw.Draw(base); x0 = 760
     text(d, (x0, 180), "Collecting demonstrations", font(56, True), NAVY)
     bullets = [("The operator wears the head camera", "a $122 4K USB camera on a $10 strap, 103 g"),
-               ("The glove is printed and electronics-free", "$22, 370 g: no wrist camera, IMU or encoder"),
+               ("The glove is printed and electronics-free", "$22, 370 g: no wrist camera, IMU or encoder (the wrist camera, its cable and the fixed camera seen here are for the ablations only)"),
                ("No protocol to follow", "what the operator sees is what the policy will see"),
                ("2–3× the demonstrations per minute of teleoperation", "6–8 s per demonstration, continuous recording")]
     y = 300
     for h, b in bullets:
-        d.rectangle([x0, y + 14, x0 + 18, y + 32], fill=TEAL); text(d, (x0 + 40, y), h, font(38, True), NAVY); text(d, (x0 + 40, y + 50), b, font(32), MUTED); y += 140
+        d.rectangle([x0, y + 14, x0 + 18, y + 32], fill=TEAL); text(d, (x0 + 40, y), h, font(38, True), NAVY)
+        ls = wrap(d, b, font(32), 1080)
+        for k, line in enumerate(ls): text(d, (x0 + 40, y + 50 + 38 * k), line, font(32), MUTED)
+        y += 102 + 38 * len(ls)
     text(d, (x0, 960), "Phone view, 1.6× speed", font(28), MUTED)
     base = to_bgr(base); first = None
     for i in range(n):
