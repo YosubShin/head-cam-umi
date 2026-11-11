@@ -7,7 +7,8 @@ head stream (data/raw/nas) and, for the last segment, the spring glove's yam_glo
 cache and calib files (skipped when absent). Segments: title; the glove hardware; the original labelling (fixed
 camera + wrist fisheye, from the YAM-UMI video); bridge card; collection with the head camera (phone, 1.6x); the
 head camera's own frame with the three label sources drawn; deployment (phone + positioner camera); one placement
-seen by three policies (1.5x); next step, the passive grip-force indicator read from the same frame; end card with
+seen by three policies (1.5x); next step, the passive grip-force indicator (a jug lift from the phone, then the slit readout
+from the head frame); end card with
 both repos' QR codes."""
 import subprocess, glob, json, sys, argparse
 from pathlib import Path
@@ -18,6 +19,7 @@ REPO = Path(__file__).resolve().parents[1]
 S = REPO / "media/.demo_cache"; S.mkdir(exist_ok=True)
 YAM = REPO.parent / "yam-umi/media"
 PHONE = YAM / "originals/data-collection_iphone_20261016.mov"
+JUG = YAM / "originals/spring-jug-lift_iphone_20261111.mov"  # phone: the spring glove lifting a gallon jug by its handle
 HEAD = REPO / "data/raw/nas/yam_glove6_b0587b.mkv"
 POSTER = REPO / "paper/poster/poster.pdf"
 G = REPO / "rollout_logs/grid_20261016"
@@ -56,6 +58,9 @@ if not (S / "seg_head_raw.mp4").exists():  # glove6 main take 169-190 s: episode
     sh("ffmpeg", "-v", "error", "-y", "-ss", "169", "-t", "21", "-i", str(HEAD), "-vf", "scale=1920:1080", "-r", "25", "-an", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", str(S / "seg_head_raw.mp4"))
 if not (S / "seg_yam.mp4").exists():  # YAM-UMI paper video 23.5-34 s: one demonstration (2x) then the labels split screen
     sh("ffmpeg", "-v", "error", "-y", "-ss", "23.5", "-t", "10.5", "-i", str(YAM / "yam-umi-paper-video.mp4"), "-vf", "scale=1748:984", "-r", "30", "-an", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(S / "seg_yam.mp4"))
+if JUG.exists() and not (S / "seg_jug.mp4").exists():  # second lift of the take, 7.8-14.0 s at 1x, portrait 608x1080, plus two stills for the slit crops
+    sh("ffmpeg", "-v", "error", "-y", "-ss", "7.8", "-t", "6.2", "-i", str(JUG), "-vf", "scale=608:1080", "-r", "30", "-an", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(S / "seg_jug.mp4"))
+    for t, name in (("9.0", "jug_rest.png"), ("11.0", "jug_up.png")): sh("ffmpeg", "-v", "error", "-y", "-ss", t, "-i", str(JUG), "-frames:v", "1", str(S / name))
 if not (S / "qr_yamumi.png").exists():  # QR for github.com/YosubShin/yam-umi via the LaTeX qrcode package
     (S / "qr.tex").write_text("\\documentclass{standalone}\\usepackage{qrcode}\\begin{document}\\qrcode[height=6cm]{https://github.com/YosubShin/yam-umi}\\end{document}\n")
     subprocess.run(["pdflatex", "-interaction=nonstopmode", "qr.tex"], cwd=S, check=True, capture_output=True); sh("pdftoppm", "-r", "300", "-png", "-singlefile", str(S / "qr.pdf"), str(S / "qr_yamumi"))
@@ -130,13 +135,15 @@ def seg_hardware(secs=16):
     base = canvas(PAPER); d = ImageDraw.Draw(base); x0 = 760
     text(d, (x0, 150), "The glove", font(56, True), NAVY)
     specs = [("Ergonomics", "355 g wrist-camera / 370 g head-camera version; UMI 780 g"),
-             ("Dexterity", "the YAM gripper's own fingers and rail-and-pinion: 0–86 mm opening"),
-             ("Strength", "1 kg by a jug handle; no rail wear in a month"),
-             ("Labels", "absolute 6-DoF pose and jaw width every frame from printed fiducials"),
+             ("Dexterity", "the YAM gripper's own fingers and rail-and-pinion: 0–86 mm opening (narrower throw on the spring variant)"),
+             ("Strength", "2 kg by a jug handle; no rail wear in a month"),
+             ("Labels", "absolute 6-DoF pose and jaw width every frame from printed fiducials; squeeze force on the spring variant"),
              ("Cost", "$79 with the wrist fisheye, $22 without; $122 of shared rig")]
     y = 580
     for h, b in specs:
-        text(d, (x0, y), h, font(30, True), NAVY); text(d, (x0 + 230, y), b, font(30), MUTED); y += 58
+        text(d, (x0, y), h, font(30, True), NAVY); ls = wrap(d, b, font(30), 900)
+        for k, line in enumerate(ls): text(d, (x0 + 230, y + 36 * k), line, font(30), MUTED)
+        y += 36 * len(ls) + 22
     base = to_bgr(base)
     for k, (th, cap) in enumerate(thumbs):
         x = x0 + k * 385; base[240:518, x:x + 370] = th
@@ -295,6 +302,33 @@ def spring_available():
                                              "calib/glove_yosub_spring_dodeca_bundle.json", "calib/glove_yosub_spring_gripper_bundle_headcam.json",
                                              f"data/raw/{SPRING_STEM}.mkv", "scripts/squeeze_read.py"))
 
+def seg_jug():
+    """Lead-in from the phone: the spring glove lifts a gallon jug by its handle (second lift of the take, 1x), with the
+    slit row cropped from the same clip at rest and under the load. Returns the first frame, or None without the clip."""
+    if not (S / "seg_jug.mp4").exists(): return None
+    cap = cv2.VideoCapture(str(S / "seg_jug.mp4")); n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    base = canvas(PAPER); d = ImageDraw.Draw(base); x0 = 760
+    text(d, (x0, 150), "Lifting a gallon jug by the handle", font(52, True), NAVY)
+    text(d, (x0, 225), "The spring in the handle compresses under the load and uncovers the slits", font(30), MUTED)
+    rest = cv2.imread(str(S / "jug_rest.png"))[550:850, 330:530]; up = cv2.imread(str(S / "jug_up.png"))[390:690, 400:600]
+    for k, (im, lab) in enumerate(((rest, "jaws closed, jug on the table"), (up, "jug in the air"))):
+        cx = x0 + 500 * k
+        base.paste(to_pil(cv2.resize(im, (440, 660), interpolation=cv2.INTER_CUBIC)), (cx, 310))
+        d.rectangle([cx, 310, cx + 440, 970], outline=TEAL if k else LIGHT, width=4)
+        text(d, (cx + 220, 1000), lab, font(28, True if k else False), NAVY if k else MUTED, "mm")
+    text(d, (x0, 1046), "Phone view, 1× speed; the two stills are from the same clip, 2.2×", font(24), MUTED)
+    base = to_bgr(base); first = None
+    for i in range(n):
+        ok, fr = cap.read()
+        if not ok: break
+        out = base.copy(); out[:, 80:688] = fr
+        out = header_bar(out, "7", "Next: grip force, still without electronics")
+        if first is None: first = out
+        emit(out)
+    emit(out, FPS // 2); fade(out, black, 0.3)
+    return first
+
+
 def seg_spring():
     """yam_glove9 frames 2300-2440 (92.0-97.6 s, one block grasp) at 1x, then 2340-2400 at 0.4x. The slit row is
     located per frame with scripts/squeeze_read.py (the reader's own geometry) and shown zoomed beside the full frame."""
@@ -302,6 +336,7 @@ def seg_spring():
     a = argparse.Namespace(stem=SPRING_STEM, raw_dir=str(REPO / "data/raw"), det_dir=str(REPO / "calib"), intrinsics=str(REPO / "calib/B0587b_f3_intrinsics.json"),
                            bundle=str(REPO / "calib/glove_yosub_spring_dodeca_bundle.json"), gripper_bundle=str(REPO / "calib/glove_yosub_spring_gripper_bundle_headcam.json"),
                            slits=str(REPO / "calib/glove_yosub_spring_slits.json"), episodes=str(REPO / f"data/raw/yam_glove9_glove_episodes.json"), track_hold=0.5)
+    jug_first = seg_jug()
     Ss = sq.Session(a); row = Ss.row; poses = Ss.poses(); jaw = Ss.jaw_series(poses); sp = Ss.cfg["spring"]
     F0, F1, SLOW0, SLOW1 = 2300, 2440, 2340, 2400
     Wc, Hc = 320, 150; frames = {}; c_s = None
@@ -329,7 +364,7 @@ def seg_spring():
         for k, line in enumerate(wrap(d, b, font(26), 580)): text(d, (x0 + 36, y + 42 + 32 * k), line, font(26), MUTED)
         y += 150
     text(d, (60, 1040), "Spring glove, head camera; the zoom follows the slit row beside the back-marker cube", font(24), MUTED)
-    base = to_bgr(base); first = None; last_w = 0.0
+    base = to_bgr(base); first = jug_first; last_w = 0.0
     def render(f, tag):
         nonlocal last_w, first
         zoom, small, width = frames[f]
