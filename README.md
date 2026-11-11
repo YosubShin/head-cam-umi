@@ -9,7 +9,8 @@ head from the robot's joint state. No wrist camera, no cable on the hand, no
 IMU, no SLAM, no fixed tracker, and one data stream instead of three.
 
 > **Paper:** [A Head Camera Is (Almost) All You Need: An Electronics-Free UMI Glove Labelled and Observed by One Moving Camera](https://arxiv.org/abs/2610.27622)
-> (arXiv:2610.27622, October 2026; submitted to the CoRL 2026 workshop *The UMI Arena*) ·
+> (arXiv:2610.27622, October 2026; *The UMI Arena* workshop at CoRL 2026, device entry D10) ·
+> [poster](paper/poster/poster.pdf) ·
 > [PDF](paper/main.pdf) · [LaTeX source and figures](paper/) ·
 > [rollout grid log](rollout_logs/grid_20261016/trials.jsonl)
 
@@ -27,6 +28,13 @@ IMU, no SLAM, no fixed tracker, and one data stream instead of three.
 </p>
 <p align="center"><em>Left: one glove demonstration at 1.5× (click for the <a href="media/head-collection-clip.mp4">clip</a>).
 Right: one placement-grid trial of a head-camera policy (arm 6 below, teleoperation with head-camera labels) at 2× (<a href="media/head-rollout-clip.mp4">clip</a>), the phone view and the head camera's view synchronised from the trial log. Left: the positioner beside the robot tracks the gripper from the robot's joint state. Right: what the policy sees, the gripper kept in frame as it carries the block to the bin.</em></p>
+
+<p align="center">
+  <a href="media/demo-loop.mp4"><img src="media/two-cameras-live.gif" alt="The fixed camera and the head camera of one glove demonstration side by side, with the camera and gripper pose solved live from the head frame, the stored width label and a 3D view" width="640"></a>
+</p>
+<p align="center"><em>From the workshop demo loop (<a href="media/demo-loop.mp4">97 s</a>, <a href="media/demo-loop-60s.mp4">60 s talk cut</a>; built by <code>media/make_demo_loop.py</code>):
+the fixed camera and the head camera of one glove demonstration at the same moment, the camera and gripper pose solved from the head frame as it plays
+(<code>media/live_labels.py</code>, the pipeline's own solvers), the width label stored for the frame, and the two poses drawn in the tile world.</em></p>
 
 | | |
 |---|---|
@@ -306,6 +314,15 @@ the robot's gripper, so contact and jaw width are the robot's.
 ## License and attribution
 
 MIT. See [LICENSE](LICENSE). The glove body and the marker ball are YAM-UMI
-parts (MIT). If you use this work, cite the paper (`paper/refs.bib` has the
-entry for YAM-UMI; the arXiv entry for this paper will be added once the
-listing is live).
+parts (MIT). If you use this work, cite the paper:
+
+```bibtex
+@misc{shin2026headcam,
+  title         = {A Head Camera Is (Almost) All You Need: An Electronics-Free {UMI} Glove Labelled and Observed by One Moving Camera},
+  author        = {Shin, Yosub and Liu, Yuan and Molybog, Igor},
+  year          = {2026},
+  eprint        = {2610.27622},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.RO}
+}
+```
