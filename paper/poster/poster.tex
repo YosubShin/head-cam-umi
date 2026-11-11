@@ -73,11 +73,10 @@
 \begin{column}{0.3\linewidth}
 \begin{block}{Why a head camera only}
   \begin{itemize}
-    \item Wrist devices need a \key{second stream} to track the gripper: SLAM, an IMU, a controller or an external camera.
-    \item \key{Gaze leads the hand}: the gripper stays in view, at arm's length, with the goal.
-    \item The frames the policy sees are the frames that \key{carry the labels}.
+    \item \key{What the operator sees is what the policy sees}: no privileged observation that only the human had.
+    \item \key{No synchronization}: one frame holds the camera pose, the gripper pose and the jaw opening. No cameras, IMUs or encoders to align.
+    \item \key{Electronics-free glove}: cheap, robust, and scalable.
   \end{itemize}
-  No SLAM, no IMU, no wrist camera, no cables.
   \vspace{0.8ex}
   \begin{center}
   \bignum{0.48\linewidth}{\$144}\bignum{0.48\linewidth}{103\,g}\\[0.3ex]
