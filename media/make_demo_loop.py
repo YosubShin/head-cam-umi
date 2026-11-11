@@ -3,7 +3,7 @@
 1920x1080, 30 fps, no audio.  python media/make_demo_loop.py -> media/demo-loop.mp4
 
 Inputs outside this repo: ../yam-umi/media (stills, the YAM-UMI paper video, the phone originals), the yam_glove6
-head stream (data/raw/nas, episodes 38 and 39 by frame index) and, for the last segment, the spring glove's yam_glove9 head stream with its detection
+head stream (data/raw/nas, episodes 38 and 39 by frame index; --short also reads the HHs3 dataset's width label for them) and, for the last segment, the spring glove's yam_glove9 head stream with its detection
 cache and calib files (skipped when absent). Segments: title; the glove hardware; the original labelling (fixed
 camera + wrist fisheye, from the YAM-UMI video); bridge card; collection with the head camera (phone, 1.6x); the
 head camera's own frame with the three label sources drawn; deployment (phone + positioner camera); one placement
@@ -144,17 +144,32 @@ def m_jug(full):
     return m
 PH = {"cap": None, "last": None, "counts": (0, 0, 0)}
 def m_combo(full):
-    """Phone view (left, advancing one frame per written frame) beside the head camera's labelled frame with its legend."""
+    """Phone view (left, advancing one frame per written frame) beside the head camera's labelled frame, with the live
+    camera and gripper pose in the tile world (cm, degrees) and the dataset's width label for the frame."""
     ok, pf = PH["cap"].read()
     if ok: PH["last"] = pf
     m = media_canvas(); m[:, 16:624] = PH["last"]
     m[120:508, 640:1330] = cv2.resize(full, (690, 388), interpolation=cv2.INTER_AREA)
     im = to_pil(m); d = ImageDraw.Draw(im)
     text(d, (640, 545), "The head camera's own frame, 1\u00d7 speed, with the label sources drawn", font(22), MUTED, "lm")
-    for k, (col, src, lab, cnt) in enumerate(zip((TEAL, AMBER, MAG), ("paper tiles", "ball faces", "tails on the jaws"), ("camera pose", "gripper pose", "jaw width"), PH["counts"])):
-        y = 610 + 72 * k
-        d.rectangle([650, y, 682, y + 32], outline=col, width=5); text(d, (704, y + 16), src, font(26), INK, "lm"); text(d, (950, y + 16), "\u2192", font(26), MUTED, "lm")
-        text(d, (995, y + 16), lab, font(26, True), NAVY, "lm"); text(d, (1320, y + 16), str(cnt), font(26), MUTED, "rm")
+    lv = PH.get("live") or {}; cam = lv.get("cam"); tw = lv.get("tool_world"); Rb = lv.get("R_world_body")
+    if cam is not None:
+        pc = np.linalg.inv(cam)[:3, 3] * 100; cam_s = f"x {pc[0]:+.1f}   y {pc[1]:+.1f}   z {pc[2]:+.1f} cm      {lv['tiles']} tiles"
+    else: cam_s = "\u2014"
+    if tw is not None:
+        import live_labels as LV; e = LV.euler_deg(Rb); tw = tw * 100
+        grip_s = f"x {tw[0]:+.1f}   y {tw[1]:+.1f}   z {tw[2]:+.1f} cm      rot {e[0]:+.0f}\u00b0 {e[1]:+.0f}\u00b0 {e[2]:+.0f}\u00b0"
+    else: grip_s = "\u2014"
+    g = PH.get("g")
+    for k, (col, src, lab, val) in enumerate(((TEAL, "paper tiles", "camera pose", cam_s), (AMBER, "ball faces", "gripper pose", grip_s), (MAG, "tails on the jaws", "jaw width", None))):
+        y = 590 + 118 * k
+        d.rectangle([650, y, 678, y + 28], outline=col, width=5); text(d, (694, y + 14), src, font(24), INK, "lm"); text(d, (905, y + 14), "\u2192", font(24), MUTED, "lm")
+        text(d, (945, y + 14), lab, font(24, True), NAVY, "lm")
+        if val is not None: text(d, (650, y + 60), val, font(26, True), NAVY, "lm")
+        elif g is not None:
+            text(d, (650, y + 60), f"label {g:.2f}", font(26, True), NAVY, "lm"); f = min(max((g - 0.2) / 0.8, 0.0), 1.0)
+            d.rectangle([840, y + 48, 1240, y + 72], fill=(0xEE, 0xEB, 0xE4)); d.rectangle([840, y + 48, 840 + int(400 * f), y + 72], fill=MAG)
+            text(d, (840, y + 92), "closed", font(18), MUTED, "lm"); text(d, (1240, y + 92), "open", font(18), MUTED, "rm")
     return to_bgr(im)
 def m_block(full):
     m = media_canvas(); m[40:790, 0:MW] = cv2.resize(full[130:790, 60:1240], (MW, 750), interpolation=cv2.INTER_AREA)
@@ -285,12 +300,17 @@ def seg_labels():
     a = cv2.aruco; p = a.DetectorParameters(); p.cornerRefinementMethod = a.CORNER_REFINE_SUBPIX
     d4 = a.ArucoDetector(a.getPredefinedDictionary(a.DICT_4X4_50), p); d36 = a.ArucoDetector(a.getPredefinedDictionary(a.DICT_APRILTAG_36h11), p)
     cap = cv2.VideoCapture(str(S / "seg_head_raw.mp4")); n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)); first = None
-    if SHORT: PH["cap"] = cv2.VideoCapture(str(S / "seg_coll.mp4"))  # the phone view runs beside the head frame
+    if SHORT:  # the phone view runs beside the head frame; the pipeline's solvers and the dataset's width label are read live
+        PH["cap"] = cv2.VideoCapture(str(S / "seg_coll.mp4"))
+        sys.path.insert(0, str(REPO / "media")); import live_labels as LV
+        PH["LL"] = LV.LiveLabels(); PH["grip"] = LV.dataset_gripper_for_cut(str(HEAD).replace(".mkv", "_ts.json"), str(HEAD.parent / "yam_glove6_glove_episodes.json"),
+                                                                           [(EP38[0] - 5, EP38[1] + 5, 38, 72), (EP39[0] - 5, EP39[1] + 5, 39, 73)])  # HHs3 episodes 72 and 73
     for i in range(n):
         ok, fr = cap.read()
         if not ok: break
         if i == EP2: emit(black, 6)  # the reset between the episodes is not in the cut
         g = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY); c4, i4, _ = d4.detectMarkers(g); c36, i36, _ = d36.detectMarkers(g)
+        if SHORT: PH["live"] = PH["LL"].update(i, c36, i36, c4, i4); PH["g"] = float(PH["grip"][i])
         nt = 0 if i36 is None else len(i36); nb = nta = 0
         def poly(cs, col, w=8 if SHORT else 4):
             for c in cs: cv2.polylines(fr, [c.reshape(-1, 1, 2).astype(np.int32)], True, rgb2bgr(col), w, cv2.LINE_AA)
