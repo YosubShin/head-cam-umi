@@ -154,10 +154,15 @@ def m_combo(full):
     m = media_canvas(); blackout = full.max() == 0
     m[110:476, 16:666] = 0 if blackout or PH["last"] is None else cv2.resize(PH["last"], (650, 366), interpolation=cv2.INTER_AREA)
     m[110:476, 680:1330] = cv2.resize(full, (650, 366), interpolation=cv2.INTER_AREA)
+    lv = PH.get("live") or {}; g = PH.get("g"); Bw = None
+    if lv.get("cam") is not None and lv.get("body") is not None:
+        T_wc = np.linalg.inv(lv["cam"]); Bw = T_wc[:3, :3] @ lv["body"][1] + T_wc[:3, 3]
+    m[530:1000, 680:1330] = PH["V3"].render(lv.get("cam"), Bw, lv.get("R_world_body"), lv.get("tool_world"), g, PH["trail_cam"], PH["trail_tool"])
     im = to_pil(m); d = ImageDraw.Draw(im)
+    text(d, (680, 1016), "Tile world, 10 cm grid: camera (teal), gripper (amber), 3 s trails", font(20), MUTED, "lm")
     text(d, (16, 500), "Fixed camera over the table: the same moment, for reference", font(22), MUTED, "lm")
     text(d, (680, 500), "Head camera: what the policy sees, with the label sources drawn", font(22), MUTED, "lm")
-    lv = PH.get("live") or {}; cam = lv.get("cam"); tw = lv.get("tool_world"); Rb = lv.get("R_world_body")
+    cam = lv.get("cam"); tw = lv.get("tool_world"); Rb = lv.get("R_world_body")
     if cam is not None:
         pc = np.linalg.inv(cam)[:3, 3] * 100; cam_s = f"x {pc[0]:+.1f}   y {pc[1]:+.1f}   z {pc[2]:+.1f} cm      {lv['tiles']} tiles"
     else: cam_s = "\u2014"
@@ -165,9 +170,8 @@ def m_combo(full):
         import live_labels as LV; e = LV.euler_deg(Rb); tw = tw * 100
         grip_s = f"x {tw[0]:+.1f}   y {tw[1]:+.1f}   z {tw[2]:+.1f} cm      rot {e[0]:+.0f}\u00b0 {e[1]:+.0f}\u00b0 {e[2]:+.0f}\u00b0"
     else: grip_s = "\u2014"
-    g = PH.get("g")
     for k, (col, src, lab, val) in enumerate(((TEAL, "paper tiles", "camera pose", cam_s), (AMBER, "ball faces", "gripper pose", grip_s), (MAG, "tails on the jaws", "jaw width", None))):
-        y = 560 + 118 * k; x = 16 + 450 * k if False else 16
+        y = 545 + 122 * k; x = 16
         d.rectangle([x, y, x + 28, y + 28], outline=col, width=5); text(d, (x + 44, y + 14), src, font(24), INK, "lm"); text(d, (x + 255, y + 14), "\u2192", font(24), MUTED, "lm")
         text(d, (x + 295, y + 14), lab, font(24, True), NAVY, "lm")
         if val is not None: text(d, (x, y + 60), val, font(26, True), NAVY, "lm")
@@ -308,7 +312,7 @@ def seg_labels():
     if SHORT:  # the phone view runs beside the head frame; the pipeline's solvers and the dataset's width label are read live
         PH["cap"] = cv2.VideoCapture(str(S / "seg_fixed_raw.mp4"))
         sys.path.insert(0, str(REPO / "media")); import live_labels as LV
-        PH["LL"] = LV.LiveLabels(); PH["grip"] = LV.dataset_gripper_for_cut(str(HEAD).replace(".mkv", "_ts.json"), str(HEAD.parent / "yam_glove6_glove_episodes.json"),
+        PH["LL"] = LV.LiveLabels(); PH["V3"] = LV.View3D(PH["LL"].layout); PH["trail_cam"] = []; PH["trail_tool"] = []; PH["grip"] = LV.dataset_gripper_for_cut(str(HEAD).replace(".mkv", "_ts.json"), str(HEAD.parent / "yam_glove6_glove_episodes.json"),
                                                                            [(EP38[0] - 5, EP38[1] + 5, 38, 72), (EP39[0] - 5, EP39[1] + 5, 39, 73)])  # HHs3 episodes 72 and 73
     for i in range(n):
         ok, fr = cap.read()
@@ -316,7 +320,9 @@ def seg_labels():
         if i == EP2: emit(black, 6)  # the reset between the episodes is not in the cut
         g = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY); c4, i4, _ = d4.detectMarkers(g); c36, i36, _ = d36.detectMarkers(g)
         if SHORT:
-            PH["live"] = PH["LL"].update(i, c36, i36, c4, i4); PH["g"] = float(PH["grip"][i])
+            PH["live"] = PH["LL"].update(i, c36, i36, c4, i4); PH["g"] = float(PH["grip"][i]); lv = PH["live"]
+            if lv["cam"] is not None: PH["trail_cam"].append(np.linalg.inv(lv["cam"])[:3, 3]); del PH["trail_cam"][:-75]
+            if lv["tool_world"] is not None: PH["trail_tool"].append(lv["tool_world"]); del PH["trail_tool"][:-75]
             okf, ff_ = PH["cap"].read()
             if okf: PH["last"] = ff_
         nt = 0 if i36 is None else len(i36); nb = nta = 0
