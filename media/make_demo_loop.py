@@ -9,7 +9,7 @@ camera + wrist fisheye, from the YAM-UMI video); bridge card; collection with th
 head camera's own frame with the three label sources drawn; deployment (phone + positioner camera); one placement
 seen by three policies (1.5x); next step, the passive grip-force indicator (a jug lift from the phone, then the slit readout
 from the head frame); end card with
-both repos' QR codes."""
+both repos' QR codes.  --short writes media/demo-loop-60s.mp4 (about 60 s) for a talk."""
 import subprocess, glob, json, sys, argparse
 from pathlib import Path
 import cv2, numpy as np
@@ -24,7 +24,8 @@ HEAD = REPO / "data/raw/nas/yam_glove6_b0587b.mkv"
 POSTER = REPO / "paper/poster/poster.pdf"
 G = REPO / "rollout_logs/grid_20261016"
 SPRING_STEM = "yam_glove9_b0587b"
-OUT = REPO / "media/demo-loop.mp4"
+SHORT = "--short" in sys.argv  # the 60 s version for a talk: same segments, shorter cuts, faster playback
+OUT = REPO / ("media/demo-loop-60s.mp4" if SHORT else "media/demo-loop.mp4")
 W, H, FPS = 1920, 1080, 30
 NAVY, PAPER, AMBER, TEAL, INK, MUTED, WHITE = (0x16,0x32,0x4F), (0xFB,0xFA,0xF7), (0xD9,0x82,0x2B), (0x2A,0x7F,0x8F), (0x1E,0x2A,0x38), (0x5C,0x66,0x70), (255,255,255)
 MAG = (0xA0, 0x3C, 0xC8); LIGHT = (0xC9,0xD3,0xDE); DIM = (0x8A,0x9B,0xB0)
@@ -128,7 +129,8 @@ def end_card():
     return to_bgr(im)
 
 # ---------- 1 hardware ----------
-def seg_hardware(secs=16):
+def seg_hardware(secs=None):
+    secs = secs or (5 if SHORT else 16)
     left = [fit(cv2.imread(str(YAM / "glove-on-hand.jpg")), 608, 1080), fit(cv2.imread(str(YAM / "umi-vs-yam-gripper.jpg")), 608, 1080)]
     thumbs = [(fit(cv2.imread(str(YAM / f)), 370, 278), cap) for f, cap in
               (("assembly/jaws-open.jpg", "rack-and-pinion jaws on MGN9 rails"), ("assembly/pinion-installed.jpg", "one two-plate print, 7 bought parts"), ("assembly/camera-mount-and-arc.jpg", "11-face ball, cubes, fisheye mount"))]
@@ -164,10 +166,11 @@ def seg_hardware(secs=16):
 def seg_yam():
     cap = cv2.VideoCapture(str(S / "seg_yam.mp4")); base = canvas(PAPER); d = ImageDraw.Draw(base)
     text(d, (W // 2, 1064), "From the YAM-UMI video: a fixed 4K camera over the table reads the ball, the wrist fisheye reads the jaw tags", font(26), MUTED, "mm")
-    base = to_bgr(base); first = None
+    base = to_bgr(base); first = None; i = -1
     while True:
-        ok, fr = cap.read()
+        ok, fr = cap.read(); i += 1
         if not ok: break
+        if SHORT and not 105 <= i < 240: continue  # 3.5-8.0 s: the end of the demonstration and the labels split screen
         out = base.copy(); out[100:1050, 116:1804] = cv2.resize(fr, (1688, 950), interpolation=cv2.INTER_AREA)
         out = header_bar(out, "2", "Labelled by a fixed camera and the wrist fisheye: no IMU, no SLAM")
         if first is None: first = out
@@ -189,11 +192,12 @@ def seg_collection():
         ls = wrap(d, b, font(32), 1080)
         for k, line in enumerate(ls): text(d, (x0 + 40, y + 50 + 38 * k), line, font(32), MUTED)
         y += 102 + 38 * len(ls)
-    text(d, (x0, 960), "Phone view, 1.6× speed", font(28), MUTED)
+    text(d, (x0, 960), "Phone view, 2.4\u00d7 speed" if SHORT else "Phone view, 1.6\u00d7 speed", font(28), MUTED)
     base = to_bgr(base); first = None
     for i in range(n):
         ok, fr = cap.read()
         if not ok: break
+        if SHORT and (i >= 337 or i % 3 == 2): continue  # the first two demonstrations, 2.4x
         out = base.copy(); out[:, 80:688] = fr
         out = header_bar(out, "3", "Collect with the glove and a head camera")
         if first is None: first = out
@@ -209,6 +213,7 @@ def seg_labels():
     for i in range(n):
         ok, fr = cap.read()
         if not ok: break
+        if SHORT and i < SKIP[1]: continue  # episode 39 only
         if SKIP[0] <= i < SKIP[1]:
             if i == SKIP[0]: emit(black, 6)
             continue
@@ -240,7 +245,7 @@ def seg_deploy():
     for k, s in enumerate(["The same camera rides a $122 SO-101 arm beside the robot. It follows the gripper from the robot's encoders alone,",
                            "placed by a linear model of where the collector's head was relative to the hand. No wrist camera."]):
         text(d, (W // 2, 905 + 44 * k), s, font(30), MUTED, "mm")
-    text(d, (W // 2, 1000), "Phone view and the positioner camera, one rollout of a head-camera policy", font(26), DIM, "mm")
+    text(d, (W // 2, 1000), "Phone view and the positioner camera, one rollout of a head-camera policy" + (", 3\u00d7 speed" if SHORT else ""), font(26), DIM, "mm")
     base = to_bgr(base); first = None; frames = []
     while True:
         ok, fr = cap.read()
@@ -248,7 +253,7 @@ def seg_deploy():
         frames.append(fr)
     frames = frames[int(2.0 * sfps):]  # the arm starts moving 2 s in
     total = int(round(len(frames) / sfps * FPS))
-    for j in range(total):
+    for j in range(0, total, 3 if SHORT else 1):
         fr = frames[min(len(frames) - 1, int(j / FPS * sfps))]
         fr = cv2.resize(fr, (1920, int(round(540 * 1920 / 1364))), interpolation=cv2.INTER_AREA)
         h = fr.shape[0]; y0 = 110 + (880 - 110 - h) // 2
@@ -262,7 +267,7 @@ def seg_deploy():
 def seg_compare():
     R = {(r["policy"], r["scene"]): r for r in map(json.loads, open(G / "trials.jsonl"))}
     cols = [("mix_gHs3", "b0587b", "Head camera on the positioner", "success"), ("mix_gHA", "fish", "Wrist fisheye, head-camera labels", "dropped during the carry"), ("mix_FB", "b0587", "Fixed forward camera", "no grasp")]
-    SPEED = 1.5; vids = []
+    SPEED = 2.0 if SHORT else 1.5; vids = []
     def grab(cap):
         fs = []
         while True:
@@ -272,13 +277,13 @@ def seg_compare():
     for pol, cam, name, outc in cols:
         own = grab(cv2.VideoCapture(glob.glob(str(G / f"{pol}_S23r0_*_{cam}.mp4"))[0])); wld = grab(cv2.VideoCapture(glob.glob(str(G / f"{pol}_S23r0_*_world.mp4"))[0]))
         vids.append((own, wld, R[(pol, 23)]["elapsed_s"], name, outc))
-    tmax = max(v[2] for v in vids); TCAP = 24.0  # the fixed camera never grasps; stop 8 s after the other two end
-    total = int(round(min(tmax, TCAP) / SPEED * FPS)) + int(FPS * 1.5); CW = 640; first = None
+    tmax = max(v[2] for v in vids); TCAP = 16.0 if SHORT else 24.0  # the fixed camera never grasps; stop 8 s after the other two end
+    total = int(round(min(tmax, TCAP) / SPEED * FPS)) + int(FPS * (0.8 if SHORT else 1.5)); CW = 640; first = None
     for j in range(total):
         t = j / FPS * SPEED
         im = canvas(PAPER); d = ImageDraw.Draw(im)
         text(d, (W // 2, 140), "Placement 23: each policy's own camera (top) and a fixed third-person camera (bottom), one clock", font(30), MUTED, "mm")
-        text(d, (W - 48, 48), f"t = {min(t, TCAP, tmax):4.1f} s   (1.5\u00d7)", font(30), LIGHT, "rm")
+        text(d, (W - 48, 48), f"t = {min(t, TCAP, tmax):4.1f} s   ({SPEED:g}\u00d7)", font(30), LIGHT, "rm")
         out = to_bgr(im)
         for c, (own, wld, el, name, outc) in enumerate(vids):
             x0 = c * CW; done = t >= el or t >= TCAP; tt = min(t, el - 1e-3, TCAP)
@@ -324,11 +329,12 @@ def seg_jug():
     for i in range(n):
         ok, fr = cap.read()
         if not ok: break
+        if SHORT and i >= 141: break  # 4.7 s: the lift and the set-down
         out = base.copy(); out[:, 80:688] = fr
         out = header_bar(out, "7", "Next: grip force, still without electronics")
         if first is None: first = out
         emit(out)
-    emit(out, FPS // 2); fade(out, black, 0.3)
+    emit(out, 9 if SHORT else FPS // 2); fade(out, black, 0.3)
     return first
 
 
@@ -385,20 +391,20 @@ def seg_spring():
     out = None
     for i, f in enumerate(range(F0, F1 + 1)):
         if f in frames: out = render(f, "1× speed"); emit(out, 2 if i % 5 == 4 else 1)
-    for f in range(SLOW0, SLOW1 + 1):
+    for f in (() if SHORT else range(SLOW0, SLOW1 + 1)):
         if f in frames: out = render(f, "0.4× speed"); emit(out, 3)
-    emit(out, FPS)
+    emit(out, FPS // 2 if SHORT else FPS)
     return first, out
 
 # ---------- assemble ----------
-tc = title_card(); emit(tc, FPS * 4); prev = tc
+tc = title_card(); emit(tc, int(FPS * (2.5 if SHORT else 4))); prev = tc
 segs = [seg_hardware, seg_yam, "bridge", seg_collection, seg_labels, seg_deploy, seg_compare] + ([seg_spring] if spring_available() else [])
 for seg in segs:
     fade(prev, black, 0.3)
     if seg == "bridge":
-        bc = bridge_card(); emit(bc, int(3.5 * FPS)); prev = bc; continue
+        bc = bridge_card(); emit(bc, int((1.5 if SHORT else 3.5) * FPS)); prev = bc; continue
     first, last = seg(); prev = last
 fade(prev, black, 0.3)
-ec = end_card(); emit(ec, FPS * 6); fade(ec, black, 0.5)
+ec = end_card(); emit(ec, int(FPS * (3 if SHORT else 6))); fade(ec, black, 0.5)
 ff.stdin.close(); ff.wait()
 print(OUT, nframes, f"{nframes / FPS:.1f} s", "spring segment:", spring_available())
