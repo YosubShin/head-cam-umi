@@ -97,7 +97,7 @@ def header_bar(im_bgr, step, title):
 PANEL_W = 580; MW = W - PANEL_W
 MEDIA = None; ACTIVE = 0; CAPTION = ""; CAP_X = 40; PENDING = False; LAST = None; PANELS = {}
 BULLETS = [("The glove", "The YAM gripper's own fingers on rack-and-pinion rails; $22–79, 355–370 g, lifts 2 kg"),
-           ("Labels from printed markers", "Absolute 6-DoF pose and jaw width every frame; no IMU, no SLAM"),
+           ("Labels from printed markers", "Absolute 6-DoF pose from the ball and jaw width from the tails, every frame; no IMU, no SLAM"),
            ("Or one head-worn camera", "The operator's 4K camera is both the policy's observation and the label source"),
            ("Deploy on a $122 positioner", "The same camera on an SO-101 beside the robot, placed from the encoders alone"),
            ("One placement, three policies", "Head camera succeeds; wrist fisheye drops the block; fixed camera never grasps"),
@@ -152,7 +152,7 @@ def title_card():
     im = canvas(NAVY); d = ImageDraw.Draw(im)
     text(d, (120, 300), "YAM-UMI", font(120, True), WHITE)
     text(d, (120, 450), "A fiducial-tracked glove that collects metrically labelled demonstrations for the YAM,", font(40), LIGHT)
-    text(d, (120, 505), "labelled by a fixed camera and a wrist fisheye, or by one head-worn camera", font(40), LIGHT)
+    text(d, (120, 505), "labelled from printed fiducials by a fixed camera, or by one head-worn camera", font(40), LIGHT)
     text(d, (120, 620), "Yosub Shin¹,  Yuan Liu²,  Igor Molybog¹", font(40, True), WHITE)
     text(d, (120, 680), "¹University of Hawai'i at Mānoa    ²Independent", font(34), LIGHT)
     text(d, (120, 860), "The UMI Arena  ·  CoRL 2026  ·  device track", font(34), AMBER)
@@ -225,14 +225,17 @@ def seg_hardware(secs=None):
 # ---------- 2 original labelling (from the YAM-UMI video) ----------
 def seg_yam():
     cap = cv2.VideoCapture(str(S / "seg_yam.mp4")); base = canvas(PAPER); d = ImageDraw.Draw(base)
-    text(d, (W // 2, 1064), "From the YAM-UMI video: a fixed 4K camera over the table reads the ball, the wrist fisheye reads the jaw tags", font(26), MUTED, "mm")
+    text(d, (W // 2, 1064), "From the YAM-UMI video; the fisheye (right) is kept for the ablations only. Pose from the ball, width from the jaw tails, both in one camera", font(26), MUTED, "mm")
     base = to_bgr(base); first = None; i = -1
     while True:
         ok, fr = cap.read(); i += 1
         if not ok: break
         if SHORT and not 124 <= i < 258: continue  # 4.1-8.6 s: the labels split screen only
         out = base.copy(); out[100:1050, 116:1804] = cv2.resize(fr, (1688, 950), interpolation=cv2.INTER_AREA)
-        out = header_bar(out, "2", "Labelled by a fixed camera and the wrist fisheye: no IMU, no SLAM")
+        out[962:1050, 116:1804] = 16  # cover the video's own banner, which credits the width to the fisheye
+        im = to_pil(out); d = ImageDraw.Draw(im)
+        text(d, (960, 1006), "Ball \u2192 pose, jaw tails \u2192 width, one camera; the wrist fisheye is for the ablations only", font(28, True), WHITE, "mm"); out = to_bgr(im)
+        out = header_bar(out, "2", "Labelled by one fixed camera: ball for pose, jaw tails for width; no IMU, no SLAM")
         if first is None: first = out
         emit(out)
     return first, out
@@ -458,7 +461,7 @@ def seg_spring():
 # ---------- assemble ----------
 if SHORT:
     plan = [(seg_hardware, m_hardware, 0, "The glove on the hand, then beside the YAM gripper", 700),
-            (seg_yam, m_rect(116, 100, 1804, 1050), 1, "From the YAM-UMI video: a fixed 4K camera over the table reads the ball, the wrist fisheye the jaw tags", 40),
+            (seg_yam, m_rect(116, 100, 1804, 1050), 1, "From the YAM-UMI video; pose from the ball, width from the jaw tails, in one camera. The fisheye is the ablation", 40),
             (seg_collection, m_portrait, 2, "Phone view, 1.6\u00d7 speed", 40),
             (seg_labels, m_rect(0, 96, 1920, 1080), 2, "Head camera, 1\u00d7 speed: one frame carries the observation and all three labels", 40),
             (seg_deploy, m_rect(0, 115, 1920, 875), 3, "Phone view and the positioner camera, 3\u00d7 speed", 40),
