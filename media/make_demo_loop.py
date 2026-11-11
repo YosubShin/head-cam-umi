@@ -60,6 +60,11 @@ if not (S / "seg_head_raw.mp4").exists():  # the two episodes back to back, 5 fr
     sel = f"between(n,{EP38[0] - 5},{EP38[1] + 5})+between(n,{EP39[0] - 5},{EP39[1] + 5})"
     sh("ffmpeg", "-v", "error", "-y", "-i", str(HEAD), "-vf", f"select='{sel}',setpts=N/25/TB,scale=1920:1080", "-r", "25", "-an", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", str(S / "seg_head_raw.mp4"))
 EP2 = EP38[1] - EP38[0] + 11  # first frame of episode 39 in the cut
+FX38, FX39 = (4472, 4644), (4803, 4978)  # the same two spans in the fixed camera (yam_glove6_b0587), by wall clock, margins included
+FIXED = REPO / "data/raw/nas/yam_glove6_b0587.mkv"
+if SHORT and not (S / "seg_fixed_raw.mp4").exists():  # the fixed camera over the table, frame for frame with the head cut
+    sel = f"between(n,{FX38[0]},{FX38[1]})+between(n,{FX39[0]},{FX39[1]})"
+    sh("ffmpeg", "-v", "error", "-y", "-i", str(FIXED), "-vf", f"select='{sel}',setpts=N/25/TB,scale=1300:732", "-r", "25", "-an", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", str(S / "seg_fixed_raw.mp4"))
 if not (S / "seg_yam.mp4").exists():  # YAM-UMI paper video 23.5-34 s: one demonstration (2x) then the labels split screen
     sh("ffmpeg", "-v", "error", "-y", "-ss", "23.5", "-t", "10.5", "-i", str(YAM / "yam-umi-paper-video.mp4"), "-vf", "scale=1748:984", "-r", "30", "-an", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(S / "seg_yam.mp4"))
 if JUG.exists() and not (S / "seg_jug.mp4").exists():  # second lift of the take, 7.8-14.0 s at 1x, portrait 608x1080, plus two stills for the slit crops
@@ -144,14 +149,14 @@ def m_jug(full):
     return m
 PH = {"cap": None, "last": None, "counts": (0, 0, 0)}
 def m_combo(full):
-    """Phone view (left, advancing one frame per written frame) beside the head camera's labelled frame, with the live
-    camera and gripper pose in the tile world (cm, degrees) and the dataset's width label for the frame."""
-    ok, pf = PH["cap"].read()
-    if ok: PH["last"] = pf
-    m = media_canvas(); m[:, 16:624] = PH["last"]
-    m[120:508, 640:1330] = cv2.resize(full, (690, 388), interpolation=cv2.INTER_AREA)
+    """The fixed camera over the table (left) and the head camera's labelled frame (right), the same moment of the same
+    session, with the live camera and gripper pose in the tile world (cm, degrees) and the dataset's width label."""
+    m = media_canvas(); blackout = full.max() == 0
+    m[110:476, 16:666] = 0 if blackout or PH["last"] is None else cv2.resize(PH["last"], (650, 366), interpolation=cv2.INTER_AREA)
+    m[110:476, 680:1330] = cv2.resize(full, (650, 366), interpolation=cv2.INTER_AREA)
     im = to_pil(m); d = ImageDraw.Draw(im)
-    text(d, (640, 545), "The head camera's own frame, 1\u00d7 speed, with the label sources drawn", font(22), MUTED, "lm")
+    text(d, (16, 500), "Fixed camera over the table: the same moment, for reference", font(22), MUTED, "lm")
+    text(d, (680, 500), "Head camera: what the policy sees, with the label sources drawn", font(22), MUTED, "lm")
     lv = PH.get("live") or {}; cam = lv.get("cam"); tw = lv.get("tool_world"); Rb = lv.get("R_world_body")
     if cam is not None:
         pc = np.linalg.inv(cam)[:3, 3] * 100; cam_s = f"x {pc[0]:+.1f}   y {pc[1]:+.1f}   z {pc[2]:+.1f} cm      {lv['tiles']} tiles"
@@ -162,14 +167,14 @@ def m_combo(full):
     else: grip_s = "\u2014"
     g = PH.get("g")
     for k, (col, src, lab, val) in enumerate(((TEAL, "paper tiles", "camera pose", cam_s), (AMBER, "ball faces", "gripper pose", grip_s), (MAG, "tails on the jaws", "jaw width", None))):
-        y = 590 + 118 * k
-        d.rectangle([650, y, 678, y + 28], outline=col, width=5); text(d, (694, y + 14), src, font(24), INK, "lm"); text(d, (905, y + 14), "\u2192", font(24), MUTED, "lm")
-        text(d, (945, y + 14), lab, font(24, True), NAVY, "lm")
-        if val is not None: text(d, (650, y + 60), val, font(26, True), NAVY, "lm")
+        y = 560 + 118 * k; x = 16 + 450 * k if False else 16
+        d.rectangle([x, y, x + 28, y + 28], outline=col, width=5); text(d, (x + 44, y + 14), src, font(24), INK, "lm"); text(d, (x + 255, y + 14), "\u2192", font(24), MUTED, "lm")
+        text(d, (x + 295, y + 14), lab, font(24, True), NAVY, "lm")
+        if val is not None: text(d, (x, y + 60), val, font(26, True), NAVY, "lm")
         elif g is not None:
-            text(d, (650, y + 60), f"label {g:.2f}", font(26, True), NAVY, "lm"); f = min(max((g - 0.2) / 0.8, 0.0), 1.0)
-            d.rectangle([840, y + 48, 1240, y + 72], fill=(0xEE, 0xEB, 0xE4)); d.rectangle([840, y + 48, 840 + int(400 * f), y + 72], fill=MAG)
-            text(d, (840, y + 92), "closed", font(18), MUTED, "lm"); text(d, (1240, y + 92), "open", font(18), MUTED, "rm")
+            text(d, (x, y + 60), f"label {g:.2f}", font(26, True), NAVY, "lm"); f = min(max((g - 0.2) / 0.8, 0.0), 1.0)
+            d.rectangle([x + 190, y + 48, x + 590, y + 72], fill=(0xEE, 0xEB, 0xE4)); d.rectangle([x + 190, y + 48, x + 190 + int(400 * f), y + 72], fill=MAG)
+            text(d, (x + 190, y + 92), "closed", font(18), MUTED, "lm"); text(d, (x + 590, y + 92), "open", font(18), MUTED, "rm")
     return to_bgr(im)
 def m_block(full):
     m = media_canvas(); m[40:790, 0:MW] = cv2.resize(full[130:790, 60:1240], (MW, 750), interpolation=cv2.INTER_AREA)
@@ -301,7 +306,7 @@ def seg_labels():
     d4 = a.ArucoDetector(a.getPredefinedDictionary(a.DICT_4X4_50), p); d36 = a.ArucoDetector(a.getPredefinedDictionary(a.DICT_APRILTAG_36h11), p)
     cap = cv2.VideoCapture(str(S / "seg_head_raw.mp4")); n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)); first = None
     if SHORT:  # the phone view runs beside the head frame; the pipeline's solvers and the dataset's width label are read live
-        PH["cap"] = cv2.VideoCapture(str(S / "seg_coll.mp4"))
+        PH["cap"] = cv2.VideoCapture(str(S / "seg_fixed_raw.mp4"))
         sys.path.insert(0, str(REPO / "media")); import live_labels as LV
         PH["LL"] = LV.LiveLabels(); PH["grip"] = LV.dataset_gripper_for_cut(str(HEAD).replace(".mkv", "_ts.json"), str(HEAD.parent / "yam_glove6_glove_episodes.json"),
                                                                            [(EP38[0] - 5, EP38[1] + 5, 38, 72), (EP39[0] - 5, EP39[1] + 5, 39, 73)])  # HHs3 episodes 72 and 73
@@ -310,7 +315,10 @@ def seg_labels():
         if not ok: break
         if i == EP2: emit(black, 6)  # the reset between the episodes is not in the cut
         g = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY); c4, i4, _ = d4.detectMarkers(g); c36, i36, _ = d36.detectMarkers(g)
-        if SHORT: PH["live"] = PH["LL"].update(i, c36, i36, c4, i4); PH["g"] = float(PH["grip"][i])
+        if SHORT:
+            PH["live"] = PH["LL"].update(i, c36, i36, c4, i4); PH["g"] = float(PH["grip"][i])
+            okf, ff_ = PH["cap"].read()
+            if okf: PH["last"] = ff_
         nt = 0 if i36 is None else len(i36); nb = nta = 0
         def poly(cs, col, w=8 if SHORT else 4):
             for c in cs: cv2.polylines(fr, [c.reshape(-1, 1, 2).astype(np.int32)], True, rgb2bgr(col), w, cv2.LINE_AA)
@@ -496,7 +504,7 @@ def seg_spring():
 if SHORT:
     plan = [(seg_hardware, m_hardware, 0, "The glove on the hand, then beside the YAM gripper", 700),
             (seg_yam, m_rect(116, 100, 1804, 1050), 1, "From the YAM-UMI video; pose from the ball, width from the jaw tails, in one camera. The fisheye is the ablation", 40),
-            (seg_labels, m_combo, 2, "Left: phone view, 1.6\u00d7 speed.  Right: head camera, 1\u00d7 speed", 640),
+            (seg_labels, m_combo, 2, "Both cameras of one glove session, two demonstrations, 1\u00d7 speed; the numbers are solved from the head frame as it plays", 16),
             (seg_deploy, m_rect(0, 115, 1920, 875), 3, "Phone view and the positioner camera, 3\u00d7 speed", 40),
             (seg_compare, m_rect(0, 180, 1920, 1040), 4, "Placement 23: each policy's own camera (top) and a third-person camera (bottom), 1.5\u00d7 speed", 40),
             (seg_spring, m_jug, 5, "Phone view, 1\u00d7 speed; the stills are from the same clip", 700)]
