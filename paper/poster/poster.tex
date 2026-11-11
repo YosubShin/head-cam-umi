@@ -150,14 +150,16 @@
 
 % ===== right third: results =====
 \begin{column}{0.335\linewidth}
-\begin{block}{194 glove demos stretch a small teleop set}
-  \capt{Eight ACT policies, joint-space actions. Rollouts: 25 placements, one trial each, \SI{60}{s}. Every co-trained mix uses the same 194 glove demos.}
-  \begin{center}
-  \bignum{0.32\linewidth}{10/25}\bignum{0.32\linewidth}{17/25}\bignum{0.32\linewidth}{1 : 2--3}\\[0.3ex]
-  \numlabel{0.32\linewidth}{48 teleop episodes}\numlabel{0.32\linewidth}{48 teleop + 194 glove}\numlabel{0.32\linewidth}{teleop episode : glove demos}
-  \end{center}
+\begin{block}{Cheap glove demos complement a small teleop set}
   \begin{minipage}[c]{0.5\linewidth}\includegraphics[width=\linewidth]{budget.pdf}\end{minipage}\hfill
-  \begin{minipage}[c]{0.47\linewidth}\small\RaggedRight 9 placements won to 2 lost ($p = 0.065$); loss 0.464 $\to$ 0.295, the level of 96--172 teleop episodes. On the teleop-only curve the glove set is worth \key{65--100 teleop episodes}, an exchange rate of 2--3 glove demos per teleoperated one. Added to all 172 it still helps: 18/25 $\to$ 20/25, loss 0.318 $\to$ 0.263.\end{minipage}
+  \begin{minipage}[c]{0.45\linewidth}\centering
+    \bignum{\linewidth}{10/25}\\[0.2ex]\numlabel{\linewidth}{48 teleop episodes}\\[0.9ex]
+    \bignum{\linewidth}{17/25}\\[0.2ex]\numlabel{\linewidth}{48 teleop + 194 glove demos}\\[0.9ex]
+    \bignum{\linewidth}{1 $\approx$ 2--3}\\[0.2ex]\numlabel{\linewidth}{teleop episode $\approx$ glove demos}
+  \end{minipage}
+  \vspace{0.2ex}
+
+  9 placements won to 2 lost ($p = 0.065$); loss 0.464 $\to$ 0.295. On the teleop-only curve the 194 glove demos are worth \key{65--100 teleop episodes}. Added to all 172 they still help: 18/25 $\to$ 20/25.
 \end{block}
 
 \begin{block}{Head-camera labels can replace the encoders}
@@ -204,6 +206,7 @@
 \begin{block}{Limits and next}
   One task, one collector, one tile layout; teleoperation watched the head-camera view. Glove-only policies do not transfer: co-training is required. Next: bimanual, tile-free in the wild.
 \end{block}
+\capt{Setup: eight ACT policies, joint-space actions. Rollouts: 25 placements, one trial each, \SI{60}{s}. Every co-trained mix uses the same 194 glove demos.}
 
 \end{column}
 \end{columns}
