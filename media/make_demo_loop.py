@@ -74,6 +74,7 @@ ff = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fm
 nframes = 0; black = np.zeros((H, W, 3), np.uint8)
 def emit(bgr, n=1):
     global nframes
+    if SHORT: bgr = compose(bgr)
     for _ in range(n):
         ff.stdin.write(np.ascontiguousarray(bgr).tobytes()); nframes += 1
 def fade(a, b, secs=0.4):
@@ -82,10 +83,66 @@ def fade(a, b, secs=0.4):
         t = i / (n + 1); emit(cv2.addWeighted(a, 1 - t, b, t, 0))
 
 def header_bar(im_bgr, step, title):
+    if SHORT: return im_bgr
     im = to_pil(im_bgr); d = ImageDraw.Draw(im)
     d.rectangle([0, 0, W, 96], fill=NAVY)
     text(d, (48, 48), step, font(40, True), AMBER, "lm"); text(d, (140, 48), title, font(40, True), WHITE, "lm")
     return to_bgr(im)
+
+
+# ---------- talk layout (--short): a summary panel that stays, the media cycling beside it ----------
+PANEL_W = 580; MW = W - PANEL_W
+MEDIA = None; ACTIVE = 0; CAPTION = ""; CAP_X = 40; PENDING = False; LAST = None; PANELS = {}
+BULLETS = [("The glove", "The YAM gripper's own fingers on rack-and-pinion rails; $22–79, 355–370 g, lifts 2 kg"),
+           ("Labels from printed markers", "Absolute 6-DoF pose and jaw width every frame; no IMU, no SLAM"),
+           ("Or one head-worn camera", "The operator's 4K camera is both the policy's observation and the label source"),
+           ("Deploy on a $122 positioner", "The same camera on an SO-101 beside the robot, placed from the encoders alone"),
+           ("One placement, three policies", "Head camera succeeds; wrist fisheye drops the block; fixed camera never grasps"),
+           ("Next: grip force, no electronics", "A spring and slits in the handle; the bar width is the squeeze, in the same frame")]
+def panel(active):
+    if active in PANELS: return PANELS[active]
+    im = canvas(PAPER); d = ImageDraw.Draw(im); px = MW; tx = px + 36; tw = W - tx - 36
+    d.rectangle([px, 0, W, H], fill=NAVY)
+    text(d, (tx, 40), "YAM-UMI", font(60, True), WHITE); y = 120
+    for line in wrap(d, "A printed glove that collects metrically labelled demonstrations for the YAM arm", font(23), tw): text(d, (tx, y), line, font(23), LIGHT); y += 30
+    y += 24
+    for k, (h, b) in enumerate(BULLETS):
+        on = k == active; hb = wrap(d, h, font(27, True), tw); bb = wrap(d, b, font(22), tw); hh = 34 * len(hb) + 28 * len(bb) + 6
+        if on: d.rectangle([px + 14, y - 10, W - 14, y + hh], fill=(0x24, 0x4A, 0x70)); d.rectangle([px + 14, y - 10, px + 20, y + hh], fill=AMBER)
+        for line in hb: text(d, (tx, y), line, font(27, True), WHITE if on else DIM); y += 34
+        for line in bb: text(d, (tx, y), line, font(22), LIGHT if on else (0x6E, 0x7E, 0x92)); y += 28
+        y += 30
+    text(d, (tx, 985), "github.com/YosubShin/yam-umi  ·  head-cam-umi", font(21), AMBER)
+    text(d, (tx, 1018), "arXiv:2610.27622  ·  The UMI Arena, CoRL 2026", font(21), DIM)
+    PANELS[active] = to_bgr(im); return PANELS[active]
+def set_media(fn, active, caption, cap_x=40):
+    global MEDIA, ACTIVE, CAPTION, CAP_X, PENDING; MEDIA, ACTIVE, CAPTION, CAP_X, PENDING = fn, active, caption, cap_x, True
+def compose(full):
+    global PENDING, LAST, nframes
+    out = panel(ACTIVE).copy(); out[:, :MW] = MEDIA(full)
+    im = to_pil(out); d = ImageDraw.Draw(im); text(d, (CAP_X, 1050), CAPTION, font(24), MUTED, "lm"); out = to_bgr(im)
+    if PENDING and LAST is not None:
+        n = 12
+        for i in range(1, n): ff.stdin.write(cv2.addWeighted(LAST, 1 - i / n, out, i / n, 0).tobytes()); nframes += 1
+    PENDING = False; LAST = out; return out
+def media_canvas(): return np.full((H, MW, 3), rgb2bgr(PAPER), np.uint8)
+def m_rect(x0, y0, x1, y1):
+    def fn(full):
+        c = full[y0:y1, x0:x1]; sc = min((MW - 80) / c.shape[1], 1000 / c.shape[0]); w, h = int(c.shape[1] * sc), int(c.shape[0] * sc)
+        m = media_canvas(); y = (1010 - h) // 2; x = (MW - w) // 2; m[y:y + h, x:x + w] = cv2.resize(c, (w, h), interpolation=cv2.INTER_AREA); return m
+    return fn
+def m_portrait(full): m = media_canvas(); m[:, 366:974] = full[:, 80:688]; return m
+def m_hardware(full):
+    m = media_canvas(); m[:, 40:648] = full[:, 80:688]
+    for k in range(3): x = 760 + k * 385; m[16 + k * 340:16 + k * 340 + 312, 760:1130] = full[240:552, x:x + 370]
+    return m
+def m_jug(full):
+    m = media_canvas(); m[:, 40:648] = full[:, 80:688]
+    for k, x in enumerate((760, 1260)): m[260:744, 700 + 330 * k:1000 + 330 * k] = cv2.resize(full[310:1020, x:x + 440], (300, 484), interpolation=cv2.INTER_AREA)
+    return m
+def m_block(full):
+    m = media_canvas(); m[40:790, 0:MW] = cv2.resize(full[130:790, 60:1240], (MW, 750), interpolation=cv2.INTER_AREA)
+    m[820:1045, 900:1300] = cv2.resize(full[130:468, 1260:1860], (400, 225), interpolation=cv2.INTER_AREA); return m
 
 # ---------- cards ----------
 def title_card():
@@ -130,7 +187,7 @@ def end_card():
 
 # ---------- 1 hardware ----------
 def seg_hardware(secs=None):
-    secs = secs or (5 if SHORT else 16)
+    secs = secs or (7 if SHORT else 16)
     left = [fit(cv2.imread(str(YAM / "glove-on-hand.jpg")), 608, 1080), fit(cv2.imread(str(YAM / "umi-vs-yam-gripper.jpg")), 608, 1080)]
     thumbs = [(fit(cv2.imread(str(YAM / f)), 370, 278), cap) for f, cap in
               (("assembly/jaws-open.jpg", "rack-and-pinion jaws on MGN9 rails"), ("assembly/pinion-installed.jpg", "one two-plate print, 7 bought parts"), ("assembly/camera-mount-and-arc.jpg", "11-face ball, cubes, fisheye mount"))]
@@ -192,12 +249,12 @@ def seg_collection():
         ls = wrap(d, b, font(32), 1080)
         for k, line in enumerate(ls): text(d, (x0 + 40, y + 50 + 38 * k), line, font(32), MUTED)
         y += 102 + 38 * len(ls)
-    text(d, (x0, 960), "Phone view, 2.4\u00d7 speed" if SHORT else "Phone view, 1.6\u00d7 speed", font(28), MUTED)
+    text(d, (x0, 960), "Phone view, 1.6\u00d7 speed", font(28), MUTED)
     base = to_bgr(base); first = None
     for i in range(n):
         ok, fr = cap.read()
         if not ok: break
-        if SHORT and (i >= 337 or i % 3 == 2): continue  # the first two demonstrations, 2.4x
+        if SHORT and i >= 337: continue  # the first two demonstrations
         out = base.copy(); out[:, 80:688] = fr
         out = header_bar(out, "3", "Collect with the glove and a head camera")
         if first is None: first = out
@@ -267,7 +324,7 @@ def seg_deploy():
 def seg_compare():
     R = {(r["policy"], r["scene"]): r for r in map(json.loads, open(G / "trials.jsonl"))}
     cols = [("mix_gHs3", "b0587b", "Head camera on the positioner", "success"), ("mix_gHA", "fish", "Wrist fisheye, head-camera labels", "dropped during the carry"), ("mix_FB", "b0587", "Fixed forward camera", "no grasp")]
-    SPEED = 2.0 if SHORT else 1.5; vids = []
+    SPEED = 1.5; vids = []
     def grab(cap):
         fs = []
         while True:
@@ -334,7 +391,8 @@ def seg_jug():
         out = header_bar(out, "7", "Next: grip force, still without electronics")
         if first is None: first = out
         emit(out)
-    emit(out, 9 if SHORT else FPS // 2); fade(out, black, 0.3)
+    emit(out, 9 if SHORT else FPS // 2)
+    if not SHORT: fade(out, black, 0.3)
     return first
 
 
@@ -346,6 +404,7 @@ def seg_spring():
                            bundle=str(REPO / "calib/glove_yosub_spring_dodeca_bundle.json"), gripper_bundle=str(REPO / "calib/glove_yosub_spring_gripper_bundle_headcam.json"),
                            slits=str(REPO / "calib/glove_yosub_spring_slits.json"), episodes=str(REPO / f"data/raw/yam_glove9_glove_episodes.json"), track_hold=0.5)
     jug_first = seg_jug()
+    if SHORT: set_media(m_block, 5, "Spring glove, head camera, 1\u00d7 speed; the zoom follows the slit row beside the back-marker cube")
     Ss = sq.Session(a); row = Ss.row; poses = Ss.poses(); jaw = Ss.jaw_series(poses); sp = Ss.cfg["spring"]
     F0, F1, SLOW0, SLOW1 = 2300, 2440, 2340, 2400
     Wc, Hc = 320, 150; frames = {}; c_s = None
@@ -397,14 +456,26 @@ def seg_spring():
     return first, out
 
 # ---------- assemble ----------
-tc = title_card(); emit(tc, int(FPS * (2.5 if SHORT else 4))); prev = tc
-segs = [seg_hardware, seg_yam, "bridge", seg_collection, seg_labels, seg_deploy, seg_compare] + ([seg_spring] if spring_available() else [])
-for seg in segs:
+if SHORT:
+    plan = [(seg_hardware, m_hardware, 0, "The glove on the hand, then beside the YAM gripper", 700),
+            (seg_yam, m_rect(116, 100, 1804, 1050), 1, "From the YAM-UMI video: a fixed 4K camera over the table reads the ball, the wrist fisheye the jaw tags", 40),
+            (seg_collection, m_portrait, 2, "Phone view, 1.6\u00d7 speed", 40),
+            (seg_labels, m_rect(0, 96, 1920, 1080), 2, "Head camera, 1\u00d7 speed: one frame carries the observation and all three labels", 40),
+            (seg_deploy, m_rect(0, 115, 1920, 875), 3, "Phone view and the positioner camera, 3\u00d7 speed", 40),
+            (seg_compare, m_rect(0, 180, 1920, 1040), 4, "Placement 23: each policy's own camera (top) and a third-person camera (bottom), 1.5\u00d7 speed", 40),
+            (seg_spring, m_jug, 5, "Phone view, 1\u00d7 speed; the stills are from the same clip", 700)]
+    for seg, fn, act, cap, cx in plan: set_media(fn, act, cap, cx); seg()
+    for _ in range(FPS): ff.stdin.write(LAST.tobytes()); nframes += 1
+    for i in range(1, 16): ff.stdin.write(cv2.addWeighted(LAST, 1 - i / 16, black, i / 16, 0).tobytes()); nframes += 1
+else:
+    tc = title_card(); emit(tc, FPS * 4); prev = tc
+    segs = [seg_hardware, seg_yam, "bridge", seg_collection, seg_labels, seg_deploy, seg_compare] + ([seg_spring] if spring_available() else [])
+    for seg in segs:
+        fade(prev, black, 0.3)
+        if seg == "bridge":
+            bc = bridge_card(); emit(bc, int(3.5 * FPS)); prev = bc; continue
+        first, last = seg(); prev = last
     fade(prev, black, 0.3)
-    if seg == "bridge":
-        bc = bridge_card(); emit(bc, int((1.5 if SHORT else 3.5) * FPS)); prev = bc; continue
-    first, last = seg(); prev = last
-fade(prev, black, 0.3)
-ec = end_card(); emit(ec, int(FPS * (3 if SHORT else 6))); fade(ec, black, 0.5)
+    ec = end_card(); emit(ec, FPS * 6); fade(ec, black, 0.5)
 ff.stdin.close(); ff.wait()
 print(OUT, nframes, f"{nframes / FPS:.1f} s", "spring segment:", spring_available())
