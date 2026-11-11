@@ -117,13 +117,16 @@
 
 \begin{column}{0.325\linewidth}
 \begin{block}{Collection}
+  \begin{itemize}
+    \item \key{The operator wears the head camera}; the glove has no wrist camera, IMU or encoder.
+    \item \key{No special protocol}, such as keeping the wrist facing the bin: what the operator sees is what the policy sees.
+  \end{itemize}
+  \vspace{0.3ex}
   \begin{center}
-  \bignum{0.48\linewidth}{2--3$\times$}\bignum{0.48\linewidth}{198}\\[0.3ex]
-  \numlabel{0.48\linewidth}{demos per minute vs teleop}\numlabel{0.48\linewidth}{demos in four sessions}\\[1.2ex]
-  \bignum{0.48\linewidth}{6--8\,s}\bignum{0.48\linewidth}{0}\\[0.3ex]
-  \numlabel{0.48\linewidth}{per demo; teleop 14\,s}\numlabel{0.48\linewidth}{robot time}
+  \bignum{0.48\linewidth}{2--3$\times$}\bignum{0.48\linewidth}{6--8\,s}\\[0.3ex]
+  \numlabel{0.48\linewidth}{demos per minute vs teleop}\numlabel{0.48\linewidth}{per demo; teleop 14\,s}
   \end{center}
-  \capt{Continuous recording, episodes cut by a keypress; 0.7--7.4\,\% of frames dropped for tracking.}
+  \capt{Continuous recording, episodes cut by a keypress.}
 \end{block}
 \end{column}
 
