@@ -7,8 +7,7 @@ head stream (data/raw/nas, episodes 38 and 39 by frame index; --short also reads
 cache and calib files (skipped when absent). Segments: title; the glove hardware; the original labelling (fixed
 camera + wrist fisheye, from the YAM-UMI video); bridge card; collection with the head camera (phone, 1.6x); the
 head camera's own frame with the three label sources drawn; deployment (phone + positioner camera); one placement
-seen by three policies (1.5x); next step, the passive grip-force indicator (a jug lift from the phone, then the slit readout
-from the head frame); end card with
+seen by three policies (1.5x); next step, the passive grip-force indicator (the jug lift from the phone with the context, then one block grasp: head frame, slit zoom, live graph); end card with
 both repos' QR codes.  --short writes media/demo-loop-60s.mp4 (about 60 s) for a talk."""
 import subprocess, glob, json, sys, argparse
 from pathlib import Path
@@ -67,7 +66,7 @@ if SHORT and not (S / "seg_fixed_raw.mp4").exists():  # the fixed camera over th
     sh("ffmpeg", "-v", "error", "-y", "-i", str(FIXED), "-vf", f"select='{sel}',setpts=N/25/TB,scale=1300:732", "-r", "25", "-an", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", str(S / "seg_fixed_raw.mp4"))
 if not (S / "seg_yam.mp4").exists():  # YAM-UMI paper video 23.5-34 s: one demonstration (2x) then the labels split screen
     sh("ffmpeg", "-v", "error", "-y", "-ss", "23.5", "-t", "10.5", "-i", str(YAM / "yam-umi-paper-video.mp4"), "-vf", "scale=1748:984", "-r", "30", "-an", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(S / "seg_yam.mp4"))
-if JUG.exists() and not (S / "seg_jug.mp4").exists():  # second lift of the take, 7.8-14.0 s at 1x, portrait 608x1080, plus two stills for the slit crops
+if JUG.exists() and not (S / "seg_jug.mp4").exists():  # second lift of the take, 7.8-14.0 s, portrait 608x1080, plus two stills for the slit crops
     sh("ffmpeg", "-v", "error", "-y", "-ss", "7.8", "-t", "6.2", "-i", str(JUG), "-vf", "scale=608:1080", "-r", "30", "-an", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(S / "seg_jug.mp4"))
     for t, name in (("9.0", "jug_rest.png"), ("11.0", "jug_up.png")): sh("ffmpeg", "-v", "error", "-y", "-ss", t, "-i", str(JUG), "-frames:v", "1", str(S / name))
 if not (S / "qr_yamumi.png").exists():  # QR for github.com/YosubShin/yam-umi via the LaTeX qrcode package
@@ -143,10 +142,6 @@ def m_hardware(full):
     m = media_canvas(); m[:, 40:648] = full[:, 80:688]
     for k in range(3): x = 760 + k * 385; m[16 + k * 340:16 + k * 340 + 312, 760:1130] = full[240:552, x:x + 370]
     return m
-def m_jug(full):
-    m = media_canvas(); m[:, 40:648] = full[:, 80:688]
-    for k, x in enumerate((760, 1260)): m[260:744, 700 + 330 * k:1000 + 330 * k] = cv2.resize(full[310:1020, x:x + 440], (300, 484), interpolation=cv2.INTER_AREA)
-    return m
 PH = {"cap": None, "last": None, "counts": (0, 0, 0)}
 def m_combo(full):
     """The fixed camera over the table (left) and the head camera's labelled frame (right), the same moment of the same
@@ -180,9 +175,9 @@ def m_combo(full):
             d.rectangle([x + 190, y + 48, x + 590, y + 72], fill=(0xEE, 0xEB, 0xE4)); d.rectangle([x + 190, y + 48, x + 190 + int(400 * f), y + 72], fill=MAG)
             text(d, (x + 190, y + 92), "closed", font(18), MUTED, "lm"); text(d, (x + 590, y + 92), "open", font(18), MUTED, "rm")
     return to_bgr(im)
-def m_block(full):
-    m = media_canvas(); m[40:790, 0:MW] = cv2.resize(full[130:790, 60:1240], (MW, 750), interpolation=cv2.INTER_AREA)
-    m[820:1045, 900:1300] = cv2.resize(full[130:468, 1260:1860], (400, 225), interpolation=cv2.INTER_AREA); return m
+def m_spring(full):
+    """The spring segment lays itself out within the media width in the talk version."""
+    return full[:, :MW].copy()
 
 # ---------- cards ----------
 def title_card():
@@ -418,47 +413,52 @@ def spring_available():
                                              "calib/glove_yosub_spring_dodeca_bundle.json", "calib/glove_yosub_spring_gripper_bundle_headcam.json",
                                              f"data/raw/{SPRING_STEM}.mkv", "scripts/squeeze_read.py"))
 
-def seg_jug():
-    """Lead-in from the phone: the spring glove lifts a gallon jug by its handle (second lift of the take, 1x), with the
-    slit row cropped from the same clip at rest and under the load. Returns the first frame, or None without the clip."""
+PARAS = [("Teleoperation stores the commanded width.", "On a block the operator commands 0.246 while the fingers stop at 0.335, so the policy learns to over-command and squeeze."),
+         ("A glove can only store the measured width.", "A policy that reproduces it as a command merely touches the block."),
+         ("The spring puts the squeeze back.", "Past contact the handle compresses up to 2 mm and a shutter uncovers the slits: the bar width is the force, 0.5 kgf at onset to 2.1 kgf at the stop, read from the same head-camera frame as the pose.")]
+
+def spring_intro():
+    """The explanation: the jug lift from the phone at 0.5x (9.0-13.0 s of the take) beside the measured-vs-commanded
+    context and the slit row at rest and under load. Returns the first frame, or None without the clip."""
     if not (S / "seg_jug.mp4").exists(): return None
-    cap = cv2.VideoCapture(str(S / "seg_jug.mp4")); n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    base = canvas(PAPER); d = ImageDraw.Draw(base); x0 = 760
-    text(d, (x0, 150), "Lifting a gallon jug by the handle", font(52, True), NAVY)
-    text(d, (x0, 225), "The spring in the handle compresses under the load and uncovers the slits", font(30), MUTED)
+    cap = cv2.VideoCapture(str(S / "seg_jug.mp4")); Wl = MW if SHORT else W; xr = 680; wr = Wl - xr - 40
+    base = canvas(PAPER); d = ImageDraw.Draw(base); tf = 23 if SHORT else 26; hf = 30 if SHORT else 34; lh = int(tf * 1.32)
+    text(d, (xr, 120), "Measured ≠ commanded width", font(hf, True), NAVY); yy = 120 + hf + 14
+    for h, b in PARAS:
+        text(d, (xr, yy), h, font(tf, True), NAVY); yy += lh
+        for line in wrap(d, b, font(tf), wr): text(d, (xr, yy), line, font(tf), INK); yy += lh
+        yy += 10
+    yy += 12; sh_ = 1000 - 36 - yy; sw = min(int(sh_ * 440 / 660), (wr - 40) // 2); sh_ = sw * 660 // 440
     rest = cv2.imread(str(S / "jug_rest.png"))[550:850, 330:530]; up = cv2.imread(str(S / "jug_up.png"))[390:690, 400:600]
-    for k, (im, lab) in enumerate(((rest, "jaws closed, jug on the table"), (up, "jug in the air"))):
-        cx = x0 + 500 * k
-        base.paste(to_pil(cv2.resize(im, (440, 660), interpolation=cv2.INTER_CUBIC)), (cx, 310))
-        d.rectangle([cx, 310, cx + 440, 970], outline=TEAL if k else LIGHT, width=4)
-        text(d, (cx + 220, 1000), lab, font(28, True if k else False), NAVY if k else MUTED, "mm")
-    text(d, (x0, 1046), "Phone view, 1× speed; the two stills are from the same clip, 2.2×", font(24), MUTED)
-    base = to_bgr(base); first = None
-    for i in range(n):
+    for k, (im_, lab) in enumerate(((rest, "jaws closed, jug on the table"), (up, "jug in the air"))):
+        cx = xr + k * (sw + 40); base.paste(to_pil(cv2.resize(im_, (sw, sh_), interpolation=cv2.INTER_CUBIC)), (cx, yy))
+        d.rectangle([cx, yy, cx + sw, yy + sh_], outline=TEAL if k else LIGHT, width=4); text(d, (cx + sw // 2, yy + sh_ + 20), lab, font(21, bool(k)), NAVY if k else MUTED, "mm")
+    text(d, (xr + 2 * sw + 60, yy + sh_ // 2), "the slit row, from the same clip", font(20), MUTED, "lm") if wr - 2 * sw - 40 > 220 else None
+    base = to_bgr(base); first = None; out = None
+    for i in range(157):
         ok, fr = cap.read()
         if not ok: break
-        if SHORT and i >= 141: break  # 4.7 s: the lift and the set-down
-        out = base.copy(); out[:, 80:688] = fr
-        out = header_bar(out, "7", "Next: grip force, still without electronics")
+        if i < 36: continue  # 9.0 s: the hand is on the handle
+        out = base.copy(); out[:, 40:648] = fr; out = header_bar(out, "7", "Next: grip force, still without electronics")
         if first is None: first = out
-        emit(out)
-    emit(out, 9 if SHORT else FPS // 2)
-    if not SHORT: fade(out, black, 0.3)
+        emit(out, 2)  # 0.5x
+    emit(out, FPS // 2); fade(out, black, 0.3) if not SHORT else None
     return first
 
-
 def seg_spring():
-    """yam_glove9 frames 2300-2440 (92.0-97.6 s, one block grasp) at 1x, then 2340-2400 at 0.4x. The slit row is
-    located per frame with scripts/squeeze_read.py (the reader's own geometry) and shown zoomed beside the full frame."""
+    """One block grasp of yam_glove9 (frames 2300-2440, 92.0-97.6 s) at 0.5x: the head frame and the slit row zoomed
+    (located per frame with scripts/squeeze_read.py, the reader's own geometry), the context on measured vs commanded
+    width, and a live graph of the jaw aperture and the slit displacement. Laid out within MW columns in the talk version."""
     sys.path.insert(0, str(REPO / "scripts")); import squeeze_read as sq
     a = argparse.Namespace(stem=SPRING_STEM, raw_dir=str(REPO / "data/raw"), det_dir=str(REPO / "calib"), intrinsics=str(REPO / "calib/B0587b_f3_intrinsics.json"),
                            bundle=str(REPO / "calib/glove_yosub_spring_dodeca_bundle.json"), gripper_bundle=str(REPO / "calib/glove_yosub_spring_gripper_bundle_headcam.json"),
                            slits=str(REPO / "calib/glove_yosub_spring_slits.json"), episodes=str(REPO / f"data/raw/yam_glove9_glove_episodes.json"), track_hold=0.5)
-    jug_first = seg_jug()
-    if SHORT: set_media(m_block, 5, "Spring glove, head camera, 1\u00d7 speed; the zoom follows the slit row beside the back-marker cube")
+    intro_first = spring_intro()
     Ss = sq.Session(a); row = Ss.row; poses = Ss.poses(); jaw = Ss.jaw_series(poses); sp = Ss.cfg["spring"]
-    F0, F1, SLOW0, SLOW1 = 2300, 2440, 2340, 2400
-    Wc, Hc = 320, 150; frames = {}; c_s = None
+    F0, F1 = 2300, 2440; Wc, Hc = 320, 150; SRC_FPS = 25.0; N = F1 - F0 + 1
+    Wl = MW if SHORT else W; x0 = 40; wh = int((0.40 if SHORT else 0.38) * Wl); hh = wh * 9 // 16
+    xz = x0 + wh + 30; wz = min(Wl - 40 - xz, 694 if SHORT else 880); hz = wz * Hc // Wc; y0 = 120; y1 = y0 + max(hh, hz) + 34
+    frames = {}; c_s = None; slit = {}
     for f in range(F0, F1 + 1):
         img = Ss.frame(f); bp = poses.get(f); width = np.nan
         if bp is not None:
@@ -467,42 +467,62 @@ def seg_spring():
             pc = cv2.projectPoints(row.corners.reshape(-1, 3) + row.AC * rd["shift"] + off + row.dir * (rd["along_mm"] / 1000), bp["rvec"], bp["tvec"], Ss.K, Ss.dist)[0].reshape(row.N, 4, 2)
             c = pc.reshape(-1, 2).mean(0); c_s = c if c_s is None else 0.7 * c_s + 0.3 * c
             if rd["valid"]: width = float(rd["width_mm"])
+        slit[f] = width
         if c_s is None: continue
-        x0 = int(min(max(c_s[0] - Wc / 2, 0), img.shape[1] - Wc)); y0 = int(min(max(c_s[1] - Hc / 2, 0), img.shape[0] - Hc))
-        zoom = cv2.resize(img[y0:y0 + Hc, x0:x0 + Wc], (1180, 553), interpolation=cv2.INTER_CUBIC)
-        small = cv2.resize(img, (600, 338), interpolation=cv2.INTER_AREA)
-        cv2.rectangle(small, (int(x0 * 600 / img.shape[1]), int(y0 * 338 / img.shape[0])), (int((x0 + Wc) * 600 / img.shape[1]), int((y0 + Hc) * 338 / img.shape[0])), rgb2bgr(AMBER), 2)
-        frames[f] = (zoom, small, width)
-    base = canvas(PAPER); d = ImageDraw.Draw(base); x0 = 1260
-    bullets = [("A die spring in the handle, 2 mm of travel", "a shutter behind eight slits uncovers as it compresses"),
-               ("The bar width is the squeeze", "0.5 kgf when white appears, 2.1 kgf at the stop; no electronics"),
-               ("Read from the same head-camera frame", "as the pose and the jaw width: a force label for glove data, which teleop data carries as position overshoot")]
-    y = 520
-    for h, b in bullets:
-        d.rectangle([x0, y + 12, x0 + 16, y + 28], fill=TEAL); text(d, (x0 + 36, y), h, font(30, True), NAVY)
-        for k, line in enumerate(wrap(d, b, font(26), 580)): text(d, (x0 + 36, y + 42 + 32 * k), line, font(26), MUTED)
-        y += 150
-    text(d, (60, 1040), "Spring glove, head camera; the zoom follows the slit row beside the back-marker cube", font(24), MUTED)
-    base = to_bgr(base); first = jug_first; last_w = 0.0
-    def render(f, tag):
-        nonlocal last_w, first
-        zoom, small, width = frames[f]
-        if np.isfinite(width): last_w = width
-        out = base.copy(); out[130:683, 60:1240] = zoom; out[130:468, 1260:1860] = small
+        cx = int(min(max(c_s[0] - Wc / 2, 0), img.shape[1] - Wc)); cy = int(min(max(c_s[1] - Hc / 2, 0), img.shape[0] - Hc))
+        zoom = cv2.resize(img[cy:cy + Hc, cx:cx + Wc], (wz, hz), interpolation=cv2.INTER_CUBIC)
+        small = cv2.resize(img, (wh, hh), interpolation=cv2.INTER_AREA); sx = wh / img.shape[1]; sy = hh / img.shape[0]
+        cv2.rectangle(small, (int(cx * sx), int(cy * sy)), (int((cx + Wc) * sx), int((cy + Hc) * sy)), rgb2bgr(AMBER), 2)
+        frames[f] = (zoom, small)
+    sl = np.zeros(N); last = 0.0  # slit displacement, last valid reading held, clamped to the slit
+    for i, f in enumerate(range(F0, F1 + 1)):
+        if np.isfinite(slit[f]): last = min(max(slit[f], 0.0), row.slit_mm)
+        sl[i] = last
+    jw = np.array([jaw[f] for f in range(F0, F1 + 1)], float); contact = next((i for i in range(N) if sl[i] >= 0.1), None)
+    # static layer: context text and the graph's axes
+    base = canvas(PAPER); d = ImageDraw.Draw(base); tf = 23 if SHORT else 26; hf = 30 if SHORT else 34; lh = int(tf * 1.32)
+    text(d, (x0, y1), "The same reading in a pick and place", font(hf, True), NAVY); yy = y1 + hf + 14
+    for h, b in (("Approach", "the jaws close on the block and the aperture falls to 0"),
+                 ("Contact, then the squeeze", "the slits open: 0.5 kgf when white appears, 2.1 kgf at the stop"),
+                 ("A force label for glove data", "where teleoperation data carries the overshoot as a commanded width")):
+        text(d, (x0, yy), h, font(tf, True), NAVY); yy += lh
+        for line in wrap(d, b, font(tf), wh): text(d, (x0, yy), line, font(tf), INK); yy += lh
+        yy += 10
+    text(d, (x0, y0 + hh + 6), "Head camera, 0.5× speed", font(20), MUTED); text(d, (xz, y0 + hz + 6), "The slit row, zoomed; the crop follows the row beside the back-marker cube", font(20), MUTED)
+    gx0, gx1, gy0, gy1 = xz + 64, xz + wz - 64, y1 + 44, 1000 - 40; jmin, jmax = -4.0, 24.0; T = (N - 1) / SRC_FPS
+    def gx(i): return gx0 + (gx1 - gx0) * i / (N - 1)
+    def gyj(v): return gy1 - (gy1 - gy0) * (v - jmin) / (jmax - jmin)
+    def gys(v): return gy1 - (gy1 - gy0) * v / row.slit_mm
+    d.rectangle([gx0, gy0, gx1, gy1], outline=LIGHT, width=2)
+    for v in (0, 5, 10, 15, 20):
+        y = gyj(v); d.line([gx0, y, gx1, y], fill=(0xE6, 0xE3, 0xDC), width=1); text(d, (gx0 - 10, y), f"{v}", font(18), TEAL, "rm")
+    for v in (0, 0.5, 1, 1.5, 2): text(d, (gx1 + 10, gys(v)), f"{v:g}", font(18), AMBER, "lm")
+    for sec in range(int(T) + 1): x = gx(sec * SRC_FPS); d.line([x, gy1, x, gy1 + 6], fill=MUTED, width=2); text(d, (x, gy1 + 10), f"{sec} s", font(18), MUTED, "ma")
+    text(d, (gx0, y1 + 8), "jaw aperture, mm (0 = at the block)", font(20, True), TEAL); text(d, (gx1, y1 + 8), "slit, mm", font(20, True), AMBER, "ra")
+    base = to_bgr(base); first = intro_first
+    def render(i):
+        nonlocal first
+        zoom, small = frames[F0 + i]; out = base.copy(); out[y0:y0 + hh, x0:x0 + wh] = small; out[y0:y0 + hz, xz:xz + wz] = zoom
         im = to_pil(out); d = ImageDraw.Draw(im)
-        shown = min(last_w, row.slit_mm); s = shown / row.slit_mm; kgf = sp["onset_kgf"] + sp["k_kgf_per_mm"] * shown; at_stop = last_w >= row.slit_mm - 0.05
-        d.rectangle([60, 720, 1240, 790], fill=(0xEE, 0xEB, 0xE4)); d.rectangle([60, 720, 60 + int(1180 * s), 790], fill=AMBER if s > 0.5 else TEAL)
-        text(d, (80, 755), f"slit bar {shown:.1f} of 2.0 mm" + ("  (at the stop)" if at_stop else ""), font(34, True), WHITE if s > 0.15 else INK, "lm")
-        text(d, (1220, 755), (("\u2265 " if at_stop else "\u2248 ") + f"{kgf:.1f} kgf") if last_w > 0.05 else "at rest, below 0.5 kgf", font(34, True), WHITE if s > 0.9 else INK, "rm")
-        text(d, (1240, 830), tag, font(28), MUTED, "rm")
+        pts = [(gx(k), gyj(jw[k])) for k in range(i + 1) if np.isfinite(jw[k])]
+        if len(pts) > 1: d.line(pts, fill=TEAL, width=3, joint="curve")
+        d.line([(gx(k), gys(sl[k])) for k in range(i + 1)], fill=AMBER, width=3, joint="curve")
+        x = gx(i); d.line([x, gy0, x, gy1], fill=MUTED, width=2)
+        if contact is not None and i >= contact:
+            xc = gx(contact)
+            for yd in range(int(gy0), int(gy1), 12): d.line([xc, yd, xc, yd + 6], fill=INK, width=2)
+            text(d, (xc + 8, gy0 + 6), "contact", font(20, True), INK)
+        shown = sl[i]; at_stop = shown >= row.slit_mm - 0.05; kgf = sp["onset_kgf"] + sp["k_kgf_per_mm"] * shown
+        d.rectangle([xz, y0 + hz - 44, xz + wz, y0 + hz], fill=(0, 0, 0))
+        text(d, (xz + 16, y0 + hz - 22), f"slit bar {shown:.1f} of {row.slit_mm:.0f} mm" + ("  (at the stop)" if at_stop else ""), font(24, True), WHITE, "lm")
+        text(d, (xz + wz - 16, y0 + hz - 22), (("≥ " if at_stop else "≈ ") + f"{kgf:.1f} kgf") if shown > 0.05 else "below 0.5 kgf", font(24, True), AMBER if shown > 0.05 else LIGHT, "rm")
+        if np.isfinite(jw[i]): text(d, (x0 + wh - 10, y0 + 10), f"aperture {jw[i]:+.1f} mm", font(22, True), WHITE, "ra")
         out = header_bar(to_bgr(im), "7", "Next: grip force, still without electronics")
         if first is None: first = out
         return out
     out = None
-    for i, f in enumerate(range(F0, F1 + 1)):
-        if f in frames: out = render(f, "1× speed"); emit(out, 2 if i % 5 == 4 else 1)
-    for f in (() if SHORT else range(SLOW0, SLOW1 + 1)):
-        if f in frames: out = render(f, "0.4× speed"); emit(out, 3)
+    for i in range(N):
+        if F0 + i in frames: out = render(i); emit(out, 3 if i % 5 in (2, 4) else 2)  # 25 fps source at 0.5x into 30 fps
     emit(out, FPS // 2 if SHORT else FPS)
     return first, out
 
@@ -513,7 +533,7 @@ if SHORT:
             (seg_labels, m_combo, 2, "Both cameras of one glove session, two demonstrations, 1\u00d7 speed; the numbers are solved from the head frame as it plays", 16),
             (seg_deploy, m_rect(0, 115, 1920, 875), 3, "Phone view and the positioner camera, 3\u00d7 speed", 40),
             (seg_compare, m_rect(0, 180, 1920, 1040), 4, "Placement 23: each policy's own camera (top) and a third-person camera (bottom), 1.5\u00d7 speed", 40),
-            (seg_spring, m_jug, 5, "Phone view, 1\u00d7 speed; the stills are from the same clip", 700)]
+            (seg_spring, m_spring, 5, "Spring glove, 0.5\u00d7 speed: a jug lift, then a block grasp", 680)]
     for seg, fn, act, cap, cx in plan: set_media(fn, act, cap, cx); seg()
     for _ in range(FPS): ff.stdin.write(LAST.tobytes()); nframes += 1
     for i in range(1, 16): ff.stdin.write(cv2.addWeighted(LAST, 1 - i / 16, black, i / 16, 0).tobytes()); nframes += 1
