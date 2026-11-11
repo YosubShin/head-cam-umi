@@ -161,32 +161,36 @@
 \end{block}
 
 \begin{block}{Head-camera labels can replace the encoders}
-  \begin{center}
-  \bignum{0.48\linewidth}{0.318}\bignum{0.48\linewidth}{0.328}\\[0.3ex]
-  \numlabel{0.48\linewidth}{teleop labelled by encoders}\numlabel{0.48\linewidth}{teleop labelled by the head camera}
+  \begin{center}\normalsize
+  \setlength{\tabcolsep}{10pt}\renewcommand{\arraystretch}{1.1}
+  \begin{tabular}{@{}lccl@{}}
+    \toprule
+    teleop labelled by & encoders & head camera & \\
+    \midrule
+    validation loss & {\Large\bfseries\color{amber}0.318} & {\Large\bfseries\color{amber}0.328} & \small\color{muted}+3\,\% \\
+    rollouts & {\Large\bfseries\color{amber}18/25} & {\Large\bfseries\color{amber}15/25} & \small\color{muted}within noise ($p = 0.58$) \\
+    \bottomrule
+  \end{tabular}
   \end{center}
-  Same 172 episodes, same held-out targets: 3\,\% of loss. On the robot 18/25 vs 15/25, within noise ($p = 0.58$).
+  Same 172 teleop episodes, same held-out encoder targets; 5 placements won to 8 lost.
 \end{block}
 
 \begin{block}{Where each view fails}
-  \begin{center}
-  \begin{tikzpicture}
-    \pgfmathsetlengthmacro{\u}{(\bw-9.8cm)/25}
-    \foreach \name/\s/\n/\d/\y in {head camera/20/5/0/3, {wrist fisheye (UMI)}/15/6/4/2, {wrist fisheye, head labels}/14/3/8/1, fixed camera/12/12/1/0} {
-      \node[anchor=east,font=\small] at (9.6cm, \y*1.45cm) {\name};
-      \fill[teal] (9.8cm, \y*1.45cm-0.5cm) rectangle ++(\s*\u, 1cm);
-      \node[white,font=\small\bfseries] at (9.8cm+\s*\u/2, \y*1.45cm) {\s};
-      \fill[nograsp] (9.8cm+\s*\u, \y*1.45cm-0.5cm) rectangle ++(\n*\u, 1cm);
-      \node[ink,font=\small\bfseries] at (9.8cm+\s*\u+\n*\u/2, \y*1.45cm) {\n};
-      \ifnum\d>0
-        \fill[amber] (9.8cm+\s*\u+\n*\u, \y*1.45cm-0.5cm) rectangle ++(\d*\u, 1cm);
-        \node[white,font=\small\bfseries] at (9.8cm+\s*\u+\n*\u+\d*\u/2, \y*1.45cm) {\d};
-      \fi
-    }
-    \node[anchor=west,font=\small,color=muted] at (9.8cm, -1.2cm) {\tikz\fill[teal] (0,0) rectangle (0.5cm,0.5cm); success\quad \tikz\fill[nograsp] (0,0) rectangle (0.5cm,0.5cm); no grasp\quad \tikz\fill[amber] (0,0) rectangle (0.5cm,0.5cm); dropped during the carry or at the bin};
-  \end{tikzpicture}
+  \begin{center}\normalsize
+  \setlength{\tabcolsep}{10pt}\renewcommand{\arraystretch}{1.1}
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    failures of 25 & no grasp & dropped & \color{muted}success \\
+    \midrule
+    head camera & {\Large\bfseries 5} & {\Large\bfseries\color{amber}0} & \color{muted}20 \\
+    wrist fisheye (UMI) & {\Large\bfseries 6} & {\Large\bfseries\color{amber}4} & \color{muted}15 \\
+    wrist fisheye, head labels & {\Large\bfseries 3} & {\Large\bfseries\color{amber}8} & \color{muted}14 \\
+    fixed camera & {\Large\bfseries 12} & {\Large\bfseries\color{amber}1} & \color{muted}12 \\
+    \bottomrule
+  \end{tabular}
   \end{center}
-  Offline the four co-trained views sit within 0.011 of each other. On the robot, wrist-camera policies \key{drop the block mid-carry}, every time while the fisheye looked away from the bin. The head camera and the fixed camera keep the bin in frame and almost never drop; they fail by not grasping.
+  \capt{Dropped = during the carry or at the bin. All four co-trained; offline loss within 0.011 of each other.}
+  Wrist-camera policies \key{drop the block mid-carry}, every time while the fisheye looked away from the bin. The head camera and the fixed camera keep the bin in frame and almost never drop; they fail by not grasping.
   \capt{Caveat: the teleoperator watched the head-camera preview while demonstrating.}
 \end{block}
 
