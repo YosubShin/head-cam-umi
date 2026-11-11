@@ -164,17 +164,17 @@
 
 \begin{block}{Head-camera labels can replace the encoders}
   \begin{center}\normalsize
-  \setlength{\tabcolsep}{10pt}\renewcommand{\arraystretch}{1.1}
+  \setlength{\tabcolsep}{22pt}\renewcommand{\arraystretch}{1.1}
   \begin{tabular}{@{}lcl@{}}
     \toprule
-    teleop labelled by & encoders & head camera \\
+    \textbf{teleop labelled by} & \textbf{encoders} & \textbf{head camera} \\
     \midrule
-    validation loss & 0.318 & 0.328 {\small\color{muted}(+3\,\%)} \\
-    rollouts & 18/25 & 15/25 {\small\color{muted}($p = 0.58$)} \\
+    \textbf{validation loss} & 0.318 & 0.328 {\small\color{muted}(+3\,\%)} \\
+    \textbf{rollouts} & 18/25 & 15/25 {\small\color{muted}($p = 0.58$)} \\
     \bottomrule
   \end{tabular}
   \end{center}
-  Same 172 teleop episodes, same held-out encoder targets; 5 placements won to 8 lost.
+  Same 172 teleop episodes, same held-out encoder targets; 5 placements won to 8 lost ($p = 0.58$).
 \end{block}
 
 \begin{block}{Where each view fails}
