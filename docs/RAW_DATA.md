@@ -175,6 +175,7 @@ For reproducing the paper's co-training (arms 1–4), beside the glove sessions:
 | `lerobot/yam_head12`, `yam_head13`, `yam_head14` | the teleop LeRobot logs from `record_yam_teleop.py` (joint state and the commanded target at 30 Hz; the 178 teleop episodes) |
 | `lerobot/pilot_head_Hgt` | the teleop half as trained: 178 episodes, head-camera view at 15 fps, encoder actions |
 | `lerobot/pilot_glove_HHs3` | the glove half: 200 episodes from glove5–8, head-camera labels |
+| (repo) `docs/results/pilot_glove_HHs3_sources.csv` | which session, take and marked episode each of the 200 HHs3 episodes came from, with the mark's wall-clock range; inferred after the fact by matching episode lengths to `*_glove_episodes.json` (all six validation anchors in `meta/val_episodes.json` match). 174 are whole marks; 12 are trimmed and 7 split by blind gaps, whose inner boundaries the build did not log |
 | `lerobot/pilot_mix_gHs3` | the co-trained set (arm 2): the two above concatenated, 378 episodes; arm 4 trains on the same set with `calib/train_eps_pilot_mix_gHs3_48.txt` |
 
 Fetch with `gcloud storage cp -r gs://head-cam-umi-raw/lerobot/<name> ~/.cache/huggingface/lerobot/`.
