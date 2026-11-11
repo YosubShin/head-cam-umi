@@ -43,9 +43,9 @@
 \begin{tikzpicture}[overlay,remember picture]
   \fill[navy] (current page.north west) rectangle ([yshift=-12.0cm]current page.north east);
 \end{tikzpicture}
-\noindent\parbox[t][10.0cm][c]{\paperwidth}{%
-\begin{columns}[c,totalwidth=\paperwidth]
-\begin{column}{0.86\paperwidth}
+\noindent\parbox[t][10.0cm][c]{\linewidth}{%
+\begin{columns}[c,totalwidth=\linewidth]
+\begin{column}{0.80\linewidth}
   \hspace*{2.4cm}\begin{minipage}{0.95\linewidth}
   {\fontsize{76}{82}\selectfont\bfseries\color{white}A Head Camera Is (Almost) All You Need\par}
   \vspace{0.5cm}
@@ -55,10 +55,10 @@
    {\fontsize{26}{30}\selectfont\color{white!80!navy}$^1$University of Hawai\textquotesingle i at M\=anoa \quad $^2$Independent}\par}
   \end{minipage}
 \end{column}
-\begin{column}{0.14\paperwidth}
+\begin{column}{0.20\linewidth}
   \centering
-  \colorbox{white}{\qrcode[height=7.8cm]{https://github.com/YosubShin/head-cam-umi}}\par
-  \vspace{0.3cm}{\small\color{white}github.com/YosubShin/head-cam-umi}\par{\small\color{white!80!navy}arXiv:2610.27622 \textperiodcentered{} The UMI Arena, CoRL 2026}
+  \colorbox{white}{\qrcode[height=6.6cm]{https://github.com/YosubShin/head-cam-umi}}\par
+  \vspace{0.3cm}{\small\color{white}github.com/YosubShin/head-cam-umi}\par{\small\color{white!80!navy}arXiv:2610.27622\par The UMI Arena, CoRL 2026}
 \end{column}
 \end{columns}}
 \vspace{0.5cm}
@@ -72,18 +72,19 @@
 \begin{columns}[t,totalwidth=\linewidth]
 \begin{column}{0.3\linewidth}
 \begin{block}{Why a head camera only}
-  \begin{itemize}
+  \begin{itemize}\setlength{\itemsep}{0.9ex}
     \item \key{What the operator sees is what the policy sees}: no privileged observation that only the human had.
     \item \key{No synchronization}: one frame is the observation and carries all three labels: camera pose, gripper pose, jaw opening. No cameras, IMUs or encoders to align.
     \item \key{Electronics-free glove}: cheap, robust, and scalable.
   \end{itemize}
-  \vspace{0.8ex}
+  \vspace{2.6ex}
   \begin{center}
   \bignum{0.48\linewidth}{\$22}\bignum{0.48\linewidth}{370\,g}\\[0.3ex]
-  \numlabel{0.48\linewidth}{glove, printed}\numlabel{0.48\linewidth}{on the hand; UMI 780\,g}\\[1.2ex]
+  \numlabel{0.48\linewidth}{glove, printed}\numlabel{0.48\linewidth}{on the hand; UMI 780\,g}\\[3.2ex]
   \bignum{0.48\linewidth}{\$122}\bignum{0.48\linewidth}{103\,g}\\[0.3ex]
   \numlabel{0.48\linewidth}{head camera}\numlabel{0.48\linewidth}{on the head}
   \end{center}
+  \vspace{4ex}
 \end{block}
 \end{column}
 \begin{column}{0.7\linewidth}
@@ -112,6 +113,7 @@
   \numlabel{0.31\linewidth}{tool point}\numlabel{0.31\linewidth}{orientation}\numlabel{0.34\linewidth}{jaw width, of stroke}
   \end{center}
   \capt{Median error against the robot's encoders; a label on 93--100\,\% of frames.}
+  \vspace{1.1ex}
 \end{block}
 \end{column}
 
@@ -162,30 +164,30 @@
     \bignum{\linewidth}{17/25}\\[0.2ex]\numlabel{\linewidth}{48 teleop + 194 glove demos}\\[0.9ex]
     \bignum{\linewidth}{1 $\approx$ 2--3}\\[0.2ex]\numlabel{\linewidth}{teleop episode $\approx$ glove demos}
   \end{minipage}
-  \vspace{0.2ex}
+  \vspace{0.8ex}
 
   9 placements won to 2 lost ($p = 0.065$). On the curve (head-label chain, own held-out targets) the 194 glove demos are worth \key{65--100 teleop episodes}. With all 172 they still help: 18/25 $\to$ 20/25 (4 won to 2 lost, $p = 0.69$).
 \end{block}
 
 \begin{block}{Head-camera labels can replace the encoders}
   \begin{center}\normalsize
-  \setlength{\tabcolsep}{22pt}\renewcommand{\arraystretch}{1.1}
-  \begin{tabular}{@{}lcl@{}}
+  \setlength{\tabcolsep}{0pt}\renewcommand{\arraystretch}{1.1}
+  \begin{tabular*}{\bw}{@{\extracolsep{\fill}}lcl@{}}
     \toprule
     \textbf{teleop labelled by} & \textbf{encoders} & \textbf{head camera} \\
     \midrule
     \textbf{validation loss} & 0.318 & 0.328 {\small\color{muted}(+3\,\%)} \\
     \textbf{rollouts} & 18/25 & 15/25 {\small\color{muted}($p = 0.58$)} \\
     \bottomrule
-  \end{tabular}
+  \end{tabular*}
   \end{center}
   Same 172 teleop episodes, same held-out encoder targets; 5 placements won to 8 lost ($p = 0.58$).
 \end{block}
 
 \begin{block}{Where each view fails}
   \begin{center}\normalsize
-  \setlength{\tabcolsep}{18pt}\renewcommand{\arraystretch}{1.1}
-  \begin{tabular}{@{}lccc@{}}
+  \setlength{\tabcolsep}{0pt}\renewcommand{\arraystretch}{1.1}
+  \begin{tabular*}{\bw}{@{\extracolsep{\fill}}lccc@{}}
     \toprule
     \textbf{failures of 25} & \textbf{no grasp} & \textbf{dropped} & \textbf{\color{muted}success} \\
     \midrule
@@ -194,48 +196,48 @@
     \textbf{wrist fisheye, head labels} & 3 & \textbf{8} & \color{muted}14 \\
     \textbf{fixed camera} & \textbf{12} & 1 & \color{muted}12 \\
     \bottomrule
-  \end{tabular}
+  \end{tabular*}
   \end{center}
   Wrist policies \key{drop the block mid-carry}, always while the fisheye looks away from the bin. Head and fixed cameras keep the bin in frame and fail only by not grasping.
 \end{block}
 
 \begin{block}{It is the view, not the labels}
-  \setlength{\tabcolsep}{8pt}\renewcommand{\arraystretch}{1.1}
-  \begin{minipage}[t]{0.48\linewidth}\centering
+  \setlength{\tabcolsep}{2pt}\renewcommand{\arraystretch}{1.1}
+  \begin{minipage}[t]{0.47\bw}\centering
     \textbf{Same view, other labels}\\[0.2ex]
     {\small\color{muted}wrist fisheye observation}\\[0.1ex]
-    \begin{tabular}{@{}lcc@{}}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lcc@{}}
       \toprule
-      \textbf{glove labels from} & \textbf{success} & \textbf{dropped} \\
+      \textbf{labels from} & \textbf{success} & \textbf{dropped} \\
       \midrule
       \textbf{fixed camera} & 15/25 & 4 \\
       \textbf{head camera} & 14/25 & 8 \\
       \bottomrule
-    \end{tabular}
+    \end{tabular*}
   \end{minipage}\hfill
-  \begin{minipage}[t]{0.48\linewidth}\centering
+  \begin{minipage}[t]{0.47\bw}\centering
     \textbf{Same labels, other view}\\[0.2ex]
     {\small\color{muted}head-camera glove labels}\\[0.1ex]
-    \begin{tabular}{@{}lcc@{}}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lcc@{}}
       \toprule
       \textbf{observation} & \textbf{success} & \textbf{dropped} \\
       \midrule
       \textbf{wrist fisheye} & 14/25 & 8 \\
       \textbf{head camera} & \textbf{20/25} & \textbf{0} \\
       \bottomrule
-    \end{tabular}
+    \end{tabular*}
   \end{minipage}
 \end{block}
 
 \begin{block}{Limits and next}
   \newcommand{\li}{\par\hangindent=1.1em\hangafter=1\noindent\textcolor{teal}{\raisebox{0.15ex}{\rule{0.55em}{0.55em}}}\ }
-  \begin{minipage}[t]{0.48\linewidth}\RaggedRight\small
+  \begin{minipage}[t]{0.47\bw}\RaggedRight\small
     \textbf{Limits}
     \li One task, one collector, one tile layout.
     \li Teleop watched the head-camera view.
     \li Glove-only policies do not transfer; co-training is required.
   \end{minipage}\hfill
-  \begin{minipage}[t]{0.48\linewidth}\RaggedRight\small
+  \begin{minipage}[t]{0.47\bw}\RaggedRight\small
     \textbf{Next}
     \li Precision tasks, e.g.\ cable ties.
     \li Bimanual, with a second glove.
