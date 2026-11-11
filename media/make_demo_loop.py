@@ -311,7 +311,8 @@ def seg_labels():
     for i in range(n):
         ok, fr = cap.read()
         if not ok: break
-        if i == EP2: emit(black, 6)  # the reset between the episodes is not in the cut
+        if SHORT and i < EP2: PH["cap"].read(); continue  # the talk version shows episode 39 only (the fixed camera keeps step)
+        if i == EP2 and not SHORT: emit(black, 6)  # the reset between the episodes is not in the cut
         g = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY); c4, i4, _ = d4.detectMarkers(g); c36, i36, _ = d36.detectMarkers(g)
         if SHORT:
             PH["live"] = PH["LL"].update(i, c36, i36, c4, i4); PH["g"] = float(PH["grip"][i]); lv = PH["live"]
@@ -417,7 +418,7 @@ PARAS = [("Teleoperation stores the commanded width.", "On a block the operator 
          ("The spring puts the squeeze back.", "Past contact the handle compresses up to 2 mm and a shutter uncovers the slits: the bar width is the force, 0.5 kgf at onset to 2.1 kgf at the stop, read from the same head-camera frame as the pose.")]
 
 def spring_intro():
-    """The explanation: the jug lift from the phone at 0.5x (9.0-13.0 s of the take) beside the measured-vs-commanded
+    """The explanation: the jug lift from the phone at 0.7x (the lift, then the set-down) beside the measured-vs-commanded
     context and the slit row tracked (cv2.TrackerMIL) and shown live. Returns the first frame, or None without the clip."""
     if not (S / "seg_jug.mp4").exists(): return None
     cap = cv2.VideoCapture(str(S / "seg_jug.mp4")); Wl = MW if SHORT else W; xr = 680; wr = Wl - xr - 40
@@ -430,22 +431,34 @@ def spring_intro():
     yy += 12; ch = 1000 - 36 - yy; cw = ch * 2 // 3; cx0 = xr + (wr - cw) // 2; cy0 = yy
     d.rectangle([cx0 - 3, cy0 - 3, cx0 + cw + 3, cy0 + ch + 3], outline=TEAL, width=3)
     text(d, (cx0 + cw // 2, cy0 + ch + 20), "the slit row, tracked in the clip", font(21, True), NAVY, "mm")
-    base = to_bgr(base); first = None; out = None; tr = None; c_s = None; b = None
-    sc = 608 / 720; bbox = (int((423 - 75) * sc), int((710 - 115) * sc), int(150 * sc), int(230 * sc))  # the slit row at 9.0 s (phone frame 720 wide)
-    for i in range(157):
-        ok, fr = cap.read()
+    base = to_bgr(base); first = None; out = None
+    fr = []
+    while True:
+        ok, f_ = cap.read()
         if not ok: break
-        if i < 36: continue  # 9.0 s: the hand is on the handle
-        if tr is None: tr = cv2.TrackerMIL_create(); tr.init(fr, bbox); b = bbox
-        else:
-            okt, bt = tr.update(fr); b = bt if okt else b
-        c = np.array([b[0] + b[2] / 2, b[1] + b[3] / 2]); c_s = c if c_s is None else 0.6 * c_s + 0.4 * c
+        fr.append(f_)
+    sc = 608 / 720; bbox = (int((423 - 75) * sc), int((710 - 115) * sc), int(150 * sc), int(230 * sc))  # the slit row at 9.0 s (frame 36; phone frame 720 wide)
+    SEGS = [(24, 84), (126, 170)]  # 8.6-10.6 s: approach, grasp, lift (dark to white); 12.0-13.5 s: set-down and release (white to dark)
+    cen = {36: (bbox[0] + bbox[2] / 2, bbox[1] + bbox[3] / 2)}
+    for order in (range(35, SEGS[0][0] - 1, -1), range(37, SEGS[-1][1] + 1)):  # backward then forward from the init frame
+        tr = cv2.TrackerMIL_create(); tr.init(fr[36], bbox); b = bbox
+        for f in order:
+            okt, bt = tr.update(fr[f]); b = bt if okt else b; cen[f] = (b[0] + b[2] / 2, b[1] + b[3] / 2)
+    c_s = None
+    def frame_at(f):
+        nonlocal c_s
+        c = np.array(cen[f]); c_s = c if c_s is None else 0.6 * c_s + 0.4 * c
         x0_ = int(min(max(c_s[0] - 93, 0), 608 - 186)); y0_ = int(min(max(c_s[1] - 140, 0), 1080 - 279))
-        out = base.copy(); out[:, 40:648] = fr; out[cy0:cy0 + ch, cx0:cx0 + cw] = cv2.resize(fr[y0_:y0_ + 279, x0_:x0_ + 186], (cw, ch), interpolation=cv2.INTER_CUBIC)
-        cv2.rectangle(out, (40 + x0_, y0_), (40 + x0_ + 186, y0_ + 279), rgb2bgr(TEAL), 2)
-        out = header_bar(out, "7", "Next: grip force, still without electronics")
-        if first is None: first = out
-        emit(out, 2)  # 0.5x
+        o = base.copy(); o[:, 40:648] = fr[f]; o[cy0:cy0 + ch, cx0:cx0 + cw] = cv2.resize(fr[f][y0_:y0_ + 279, x0_:x0_ + 186], (cw, ch), interpolation=cv2.INTER_CUBIC)
+        cv2.rectangle(o, (40 + x0_, y0_), (40 + x0_ + 186, y0_ + 279), rgb2bgr(TEAL), 2)
+        return header_bar(o, "7", "Next: grip force, still without electronics")
+    k = 0
+    for a, b_ in SEGS:
+        c_s = None; nxt = frame_at(a)
+        if out is not None: fade(out, nxt, 0.25)
+        for f in range(a, b_ + 1):
+            out = frame_at(f); emit(out, 2 if k % 7 in (1, 3, 5) else 1); k += 1  # 0.7x
+            if first is None: first = out
     emit(out, FPS // 2); fade(out, black, 0.3) if not SHORT else None
     return first
 
@@ -537,7 +550,7 @@ if SHORT:
             (seg_labels, m_combo, 2, "Both cameras of one glove session, two demonstrations, 1\u00d7 speed; the numbers are solved from the head frame as it plays", 16),
             (seg_deploy, m_rect(0, 115, 1920, 875), 3, "Phone view and the positioner camera, 3\u00d7 speed", 40),
             (seg_compare, m_rect(0, 180, 1920, 1040), 4, "Placement 23: each policy's own camera (top) and a third-person camera (bottom), 1.5\u00d7 speed", 40),
-            (seg_spring, m_spring, 5, "Spring glove, 0.5\u00d7 speed: a jug lift, then a block grasp", 680)]
+            (seg_spring, m_spring, 5, "Spring glove: a jug lift at 0.7\u00d7, then a block grasp at 0.5\u00d7", 680)]
     for seg, fn, act, cap, cx in plan: set_media(fn, act, cap, cx); seg()
     for _ in range(FPS): ff.stdin.write(LAST.tobytes()); nframes += 1
     for i in range(1, 16): ff.stdin.write(cv2.addWeighted(LAST, 1 - i / 16, black, i / 16, 0).tobytes()); nframes += 1
