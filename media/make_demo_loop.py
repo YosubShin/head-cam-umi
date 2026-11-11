@@ -5,8 +5,8 @@
 Inputs outside this repo: ../yam-umi/media (stills, the YAM-UMI paper video, the phone originals), the yam_glove6
 head stream (data/raw/nas, episodes 38 and 39 by frame index; --short also reads the HHs3 dataset's width label for them) and, for the last segment, the spring glove's yam_glove9 head stream with its detection
 cache and calib files (skipped when absent). Segments: title; the glove hardware; the original labelling (fixed
-camera + wrist fisheye, from the YAM-UMI video); bridge card; collection with the head camera (phone, 1.6x); the
-head camera's own frame with the three label sources drawn; deployment (phone + positioner camera); one placement
+camera + wrist fisheye, from the YAM-UMI video); bridge card; two glove demonstrations seen by the fixed camera and the
+head camera at once, with the label sources drawn, the poses solved live, the width label and a 3D view; deployment (phone + positioner camera); one placement
 seen by three policies (1.5x); next step, the passive grip-force indicator (the jug lift from the phone with the context, then one block grasp: head frame, slit zoom, live graph); end card with
 both repos' QR codes.  --short writes media/demo-loop-60s.mp4 (about 60 s) for a talk."""
 import subprocess, glob, json, sys, argparse
@@ -61,7 +61,7 @@ if not (S / "seg_head_raw.mp4").exists():  # the two episodes back to back, 5 fr
 EP2 = EP38[1] - EP38[0] + 11  # first frame of episode 39 in the cut
 FX38, FX39 = (4472, 4644), (4803, 4978)  # the same two spans in the fixed camera (yam_glove6_b0587), by wall clock, margins included
 FIXED = REPO / "data/raw/nas/yam_glove6_b0587.mkv"
-if SHORT and not (S / "seg_fixed_raw.mp4").exists():  # the fixed camera over the table, frame for frame with the head cut
+if not (S / "seg_fixed_raw.mp4").exists():  # the fixed camera over the table, frame for frame with the head cut
     sel = f"between(n,{FX38[0]},{FX38[1]})+between(n,{FX39[0]},{FX39[1]})"
     sh("ffmpeg", "-v", "error", "-y", "-i", str(FIXED), "-vf", f"select='{sel}',setpts=N/25/TB,scale=1300:732", "-r", "25", "-an", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", str(S / "seg_fixed_raw.mp4"))
 if not (S / "seg_yam.mp4").exists():  # YAM-UMI paper video 23.5-34 s: one demonstration (2x) then the labels split screen
@@ -142,31 +142,34 @@ def m_hardware(full):
     for k in range(3): x = 760 + k * 385; m[16 + k * 340:16 + k * 340 + 312, 760:1130] = full[240:552, x:x + 370]
     return m
 PH = {"cap": None, "last": None, "counts": (0, 0, 0)}
-def m_combo(full):
+LAY_SHORT = dict(W=MW, x1=16, x2=680, y0=110, vw=650, vh=366, cap_y=500, lx=16, ly=545, dy=122, v3=(680, 530, 650, 470), v3cap=(680, 1016), f3=700)
+LAY_TABLE = dict(W=W, x1=16, x2=974, y0=112, vw=930, vh=523, cap_y=660, lx=16, ly=700, dy=110, v3=(974, 690, 930, 350), v3cap=(986, 704), f3=600)
+def combo(full, L):
     """The fixed camera over the table (left) and the head camera's labelled frame (right), the same moment of the same
-    session, with the live camera and gripper pose in the tile world (cm, degrees) and the dataset's width label."""
-    m = media_canvas(); blackout = full.max() == 0
-    m[110:476, 16:666] = 0 if blackout or PH["last"] is None else cv2.resize(PH["last"], (650, 366), interpolation=cv2.INTER_AREA)
-    m[110:476, 680:1330] = cv2.resize(full, (650, 366), interpolation=cv2.INTER_AREA)
+    session, with the live camera and gripper pose in the tile world (cm, degrees), the dataset's width label and the 3D view."""
+    m = np.full((H, L["W"], 3), rgb2bgr(PAPER), np.uint8); blackout = full.max() == 0; y0, vw, vh = L["y0"], L["vw"], L["vh"]
+    m[y0:y0 + vh, L["x1"]:L["x1"] + vw] = 0 if blackout or PH["last"] is None else cv2.resize(PH["last"], (vw, vh), interpolation=cv2.INTER_AREA)
+    m[y0:y0 + vh, L["x2"]:L["x2"] + vw] = cv2.resize(full, (vw, vh), interpolation=cv2.INTER_AREA)
     lv = PH.get("live") or {}; g = PH.get("g"); Bw = None
     if lv.get("cam") is not None and lv.get("body") is not None:
         T_wc = np.linalg.inv(lv["cam"]); Bw = T_wc[:3, :3] @ lv["body"][1] + T_wc[:3, 3]
-    m[530:1000, 680:1330] = PH["V3"].render(lv.get("cam"), Bw, lv.get("R_world_body"), lv.get("tool_world"), g, PH["trail_cam"], PH["trail_tool"])
+    vx, vy, vw3, vh3 = L["v3"]
+    m[vy:vy + vh3, vx:vx + vw3] = PH["V3"].render(lv.get("cam"), Bw, lv.get("R_world_body"), lv.get("tool_world"), g, PH["trail_cam"], PH["trail_tool"])
     im = to_pil(m); d = ImageDraw.Draw(im)
-    text(d, (680, 1016), "Tile world, 10 cm grid: camera (teal), gripper (amber), 3 s trails", font(20), MUTED, "lm")
-    text(d, (16, 500), "Fixed camera over the table: the same moment, for reference", font(22), MUTED, "lm")
-    text(d, (680, 500), "Head camera: what the policy sees, with the label sources drawn", font(22), MUTED, "lm")
+    text(d, L["v3cap"], "Tile world, 10 cm grid: camera (teal), gripper (amber), 3 s trails", font(20), MUTED, "lm")
+    text(d, (L["x1"], L["cap_y"]), "Fixed camera over the table: the same moment, for reference", font(22), MUTED, "lm")
+    text(d, (L["x2"], L["cap_y"]), "Head camera: what the policy sees, with the label sources drawn", font(22), MUTED, "lm")
     cam = lv.get("cam"); tw = lv.get("tool_world"); Rb = lv.get("R_world_body")
     if cam is not None:
         pc = np.linalg.inv(cam)[:3, 3] * 100; cam_s = f"x {pc[0]:+.1f}   y {pc[1]:+.1f}   z {pc[2]:+.1f} cm      {lv['tiles']} tiles"
-    else: cam_s = "\u2014"
+    else: cam_s = "—"
     if tw is not None:
         import live_labels as LV; e = LV.euler_deg(Rb); tw = tw * 100
-        grip_s = f"x {tw[0]:+.1f}   y {tw[1]:+.1f}   z {tw[2]:+.1f} cm      rot {e[0]:+.0f}\u00b0 {e[1]:+.0f}\u00b0 {e[2]:+.0f}\u00b0"
-    else: grip_s = "\u2014"
+        grip_s = f"x {tw[0]:+.1f}   y {tw[1]:+.1f}   z {tw[2]:+.1f} cm      rot {e[0]:+.0f}° {e[1]:+.0f}° {e[2]:+.0f}°"
+    else: grip_s = "—"
     for k, (col, src, lab, val) in enumerate(((TEAL, "paper tiles", "camera pose", cam_s), (AMBER, "ball faces", "gripper pose", grip_s), (MAG, "tails on the jaws", "jaw width", None))):
-        y = 545 + 122 * k; x = 16
-        d.rectangle([x, y, x + 28, y + 28], outline=col, width=5); text(d, (x + 44, y + 14), src, font(24), INK, "lm"); text(d, (x + 255, y + 14), "\u2192", font(24), MUTED, "lm")
+        y = L["ly"] + L["dy"] * k; x = L["lx"]
+        d.rectangle([x, y, x + 28, y + 28], outline=col, width=5); text(d, (x + 44, y + 14), src, font(24), INK, "lm"); text(d, (x + 255, y + 14), "→", font(24), MUTED, "lm")
         text(d, (x + 295, y + 14), lab, font(24, True), NAVY, "lm")
         if val is not None: text(d, (x, y + 60), val, font(26, True), NAVY, "lm")
         elif g is not None:
@@ -174,6 +177,7 @@ def m_combo(full):
             d.rectangle([x + 190, y + 48, x + 590, y + 72], fill=(0xEE, 0xEB, 0xE4)); d.rectangle([x + 190, y + 48, x + 190 + int(400 * f), y + 72], fill=MAG)
             text(d, (x + 190, y + 92), "closed", font(18), MUTED, "lm"); text(d, (x + 590, y + 92), "open", font(18), MUTED, "rm")
     return to_bgr(im)
+def m_combo(full): return combo(full, LAY_SHORT)
 def m_spring(full):
     """The spring segment lays itself out within the media width in the talk version."""
     return full[:, :MW].copy()
@@ -300,43 +304,37 @@ def seg_collection():
 
 # ---------- 4 the head camera's frame with the label sources ----------
 def seg_labels():
+    """Episodes 38 and 39 of glove6 (39 alone in the talk version): the fixed camera and the head camera's labelled frame
+    side by side, the pipeline's solvers read live (camera and gripper pose in the tile world), the dataset's width label
+    for the frame, and the 3D view (media/live_labels.py)."""
     a = cv2.aruco; p = a.DetectorParameters(); p.cornerRefinementMethod = a.CORNER_REFINE_SUBPIX
     d4 = a.ArucoDetector(a.getPredefinedDictionary(a.DICT_4X4_50), p); d36 = a.ArucoDetector(a.getPredefinedDictionary(a.DICT_APRILTAG_36h11), p)
-    cap = cv2.VideoCapture(str(S / "seg_head_raw.mp4")); n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)); first = None
-    if SHORT:  # the phone view runs beside the head frame; the pipeline's solvers and the dataset's width label are read live
-        PH["cap"] = cv2.VideoCapture(str(S / "seg_fixed_raw.mp4"))
-        sys.path.insert(0, str(REPO / "media")); import live_labels as LV
-        PH["LL"] = LV.LiveLabels(); PH["V3"] = LV.View3D(PH["LL"].layout); PH["trail_cam"] = []; PH["trail_tool"] = []; PH["grip"] = LV.dataset_gripper_for_cut(str(HEAD).replace(".mkv", "_ts.json"), str(HEAD.parent / "yam_glove6_glove_episodes.json"),
-                                                                           [(EP38[0] - 5, EP38[1] + 5, 38, 72), (EP39[0] - 5, EP39[1] + 5, 39, 73)])  # HHs3 episodes 72 and 73
+    cap = cv2.VideoCapture(str(S / "seg_head_raw.mp4")); n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)); first = None; L = LAY_SHORT if SHORT else LAY_TABLE
+    PH["cap"] = cv2.VideoCapture(str(S / "seg_fixed_raw.mp4"))
+    sys.path.insert(0, str(REPO / "media")); import live_labels as LV
+    PH["LL"] = LV.LiveLabels(); PH["V3"] = LV.View3D(PH["LL"].layout, size=L["v3"][2:], f_px=L["f3"]); PH["trail_cam"] = []; PH["trail_tool"] = []
+    PH["grip"] = LV.dataset_gripper_for_cut(str(HEAD).replace(".mkv", "_ts.json"), str(HEAD.parent / "yam_glove6_glove_episodes.json"),
+                                            [(EP38[0] - 5, EP38[1] + 5, 38, 72), (EP39[0] - 5, EP39[1] + 5, 39, 73)])  # HHs3 episodes 72 and 73
     for i in range(n):
         ok, fr = cap.read()
         if not ok: break
         if SHORT and i < EP2: PH["cap"].read(); continue  # the talk version shows episode 39 only (the fixed camera keeps step)
-        if i == EP2 and not SHORT: emit(black, 6)  # the reset between the episodes is not in the cut
+        if i == EP2 and not SHORT: emit(black, 6); PH["trail_cam"].clear(); PH["trail_tool"].clear()  # the reset between the episodes is not in the cut
         g = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY); c4, i4, _ = d4.detectMarkers(g); c36, i36, _ = d36.detectMarkers(g)
-        if SHORT:
-            PH["live"] = PH["LL"].update(i, c36, i36, c4, i4); PH["g"] = float(PH["grip"][i]); lv = PH["live"]
-            if lv["cam"] is not None: PH["trail_cam"].append(np.linalg.inv(lv["cam"])[:3, 3]); del PH["trail_cam"][:-75]
-            if lv["tool_world"] is not None: PH["trail_tool"].append(lv["tool_world"]); del PH["trail_tool"][:-75]
-            okf, ff_ = PH["cap"].read()
-            if okf: PH["last"] = ff_
+        PH["live"] = PH["LL"].update(i, c36, i36, c4, i4); PH["g"] = float(PH["grip"][i]); lv = PH["live"]
+        if lv["cam"] is not None: PH["trail_cam"].append(np.linalg.inv(lv["cam"])[:3, 3]); del PH["trail_cam"][:-75]
+        if lv["tool_world"] is not None: PH["trail_tool"].append(lv["tool_world"]); del PH["trail_tool"][:-75]
+        okf, ff_ = PH["cap"].read()
+        if okf: PH["last"] = ff_
         nt = 0 if i36 is None else len(i36); nb = nta = 0
-        def poly(cs, col, w=8 if SHORT else 4):
+        def poly(cs, col, w=8):
             for c in cs: cv2.polylines(fr, [c.reshape(-1, 1, 2).astype(np.int32)], True, rgb2bgr(col), w, cv2.LINE_AA)
         if i36 is not None: poly(c36, TEAL)
         if i4 is not None:
             ids = i4.ravel(); ball = [c for c, k in zip(c4, ids) if 25 <= k <= 35]; tails = [c for c, k in zip(c4, ids) if 36 <= k <= 49]
             nb, nta = len(ball), len(tails); poly(ball, AMBER); poly(tails, MAG)
         PH["counts"] = (nt, nb, nta)
-        if not SHORT: ov = fr.copy(); cv2.rectangle(ov, (40, 760), (900, 1040), (255, 255, 255), -1); fr = cv2.addWeighted(ov, 0.82, fr, 0.18, 0)
-        im = to_pil(fr); d = ImageDraw.Draw(im)
-        for k, (col, src, lab, cnt) in (() if SHORT else enumerate([(TEAL, "paper tiles", "camera pose", nt), (AMBER, "ball faces", "gripper pose", nb), (MAG, "tails on the jaws", "jaw width", nta)])):
-            y = 800 + 80 * k
-            d.rectangle([70, y + 6, 106, y + 42], outline=col, width=5)
-            text(d, (130, y + 24), src, font(36), INK, "lm"); text(d, (470, y + 24), "→", font(36), MUTED, "lm")
-            text(d, (530, y + 24), lab, font(36, True), NAVY, "lm"); text(d, (870, y + 24), f"{cnt}", font(36), MUTED, "rm")
-        out = header_bar(to_bgr(im), "4", "One head-camera frame carries the observation and all three labels")
-        if not SHORT: im = to_pil(out); d = ImageDraw.Draw(im); text(d, (W - 48, 48), "Head camera, 1× speed", font(28), LIGHT, "rm"); out = to_bgr(im)
+        out = fr if SHORT else header_bar(combo(fr, LAY_TABLE), "3", "One head-camera frame carries the observation and all three labels")
         if first is None: first = out
         emit(out, 2 if i % 5 == 4 else 1)  # 25 -> 30 fps
     return first, out
@@ -361,7 +359,7 @@ def seg_deploy():
         fr = cv2.resize(fr, (1920, int(round(540 * 1920 / 1364))), interpolation=cv2.INTER_AREA)
         h = fr.shape[0]; y0 = 110 + (880 - 110 - h) // 2
         out = base.copy(); out[y0:y0 + h] = fr
-        out = header_bar(out, "5", "Deploy: the head camera moves to a positioner beside the robot")
+        out = header_bar(out, "4", "Deploy: the head camera moves to a positioner beside the robot")
         if first is None: first = out
         emit(out)
     return first, out
@@ -402,7 +400,7 @@ def seg_compare():
             if t >= el or t >= TCAP:
                 col = TEAL if outc == "success" else AMBER
                 d.rectangle([x0 + 4, 980, x0 + CW - 4, 1040], fill=col); text(d, (x0 + CW // 2, 1010), f"{outc}  \u00b7  {el:.0f} s" + ("  (cut)" if el > TCAP else ""), font(30, True), WHITE, "mm")
-        out = header_bar(to_bgr(im), "6", "Rollouts: 20/25, 14/25 and 12/25 over 25 placements; one of them seen by each policy")
+        out = header_bar(to_bgr(im), "5", "Rollouts: 20/25, 14/25 and 12/25 over 25 placements; one of them seen by each policy")
         if first is None: first = out
         emit(out)
     return first, out
@@ -451,7 +449,7 @@ def spring_intro():
         x0_ = int(min(max(c_s[0] - 93, 0), 608 - 186)); y0_ = int(min(max(c_s[1] - 140, 0), 1080 - 279))
         o = base.copy(); o[:, 40:648] = fr[f]; o[cy0:cy0 + ch, cx0:cx0 + cw] = cv2.resize(fr[f][y0_:y0_ + 279, x0_:x0_ + 186], (cw, ch), interpolation=cv2.INTER_CUBIC)
         cv2.rectangle(o, (40 + x0_, y0_), (40 + x0_ + 186, y0_ + 279), rgb2bgr(TEAL), 2)
-        return header_bar(o, "7", "Next: grip force, still without electronics")
+        return header_bar(o, "6", "Next: grip force, still without electronics")
     k = 0
     for a, b_ in SEGS:
         c_s = None; nxt = frame_at(a)
@@ -534,7 +532,7 @@ def seg_spring():
         text(d, (xz + 16, y0 + hz - 22), f"slit bar {shown:.1f} of {row.slit_mm:.0f} mm" + ("  (at the stop)" if at_stop else ""), font(24, True), WHITE, "lm")
         text(d, (xz + wz - 16, y0 + hz - 22), (("≥ " if at_stop else "≈ ") + f"{kgf:.1f} kgf") if shown > 0.05 else "below 0.5 kgf", font(24, True), AMBER if shown > 0.05 else LIGHT, "rm")
         if np.isfinite(jw[i]): text(d, (x0 + wh - 10, y0 + 10), f"aperture {jw[i]:+.1f} mm", font(22, True), WHITE, "ra")
-        out = header_bar(to_bgr(im), "7", "Next: grip force, still without electronics")
+        out = header_bar(to_bgr(im), "6", "Next: grip force, still without electronics")
         if first is None: first = out
         return out
     out = None
@@ -556,7 +554,7 @@ if SHORT:
     for i in range(1, 16): ff.stdin.write(cv2.addWeighted(LAST, 1 - i / 16, black, i / 16, 0).tobytes()); nframes += 1
 else:
     tc = title_card(); emit(tc, FPS * 4); prev = tc
-    segs = [seg_hardware, seg_yam, "bridge", seg_collection, seg_labels, seg_deploy, seg_compare] + ([seg_spring] if spring_available() else [])
+    segs = [seg_hardware, seg_yam, "bridge", seg_labels, seg_deploy, seg_compare] + ([seg_spring] if spring_available() else [])
     for seg in segs:
         fade(prev, black, 0.3)
         if seg == "bridge":
