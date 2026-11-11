@@ -151,7 +151,7 @@
 % ===== right third: results =====
 \begin{column}{0.335\linewidth}
 \begin{block}{Cheap glove demos complement a small teleop set}
-  \begin{minipage}[c]{0.48\linewidth}\includegraphics[width=\linewidth]{budget_poster.pdf}\end{minipage}\hfill
+  \begin{minipage}[c]{0.45\linewidth}\includegraphics[width=\linewidth]{budget_poster.pdf}\end{minipage}\hfill
   \begin{minipage}[c]{0.45\linewidth}\centering
     \bignum{\linewidth}{10/25}\\[0.2ex]\numlabel{\linewidth}{48 teleop episodes}\\[0.9ex]
     \bignum{\linewidth}{17/25}\\[0.2ex]\numlabel{\linewidth}{48 teleop + 194 glove demos}\\[0.9ex]
@@ -191,7 +191,7 @@
     \bottomrule
   \end{tabular}
   \end{center}
-  Wrist-camera policies \key{drop the block mid-carry}, every time while the fisheye looked away from the bin. The head camera and the fixed camera keep the bin in frame and almost never drop; they fail by not grasping.
+  Wrist policies \key{drop the block mid-carry}, always while the fisheye looks away from the bin. Head and fixed cameras keep the bin in frame and fail only by not grasping.
 \end{block}
 
 \begin{block}{It is the view, not the labels}
@@ -223,7 +223,19 @@
 \end{block}
 
 \begin{block}{Limits and next}
-  One task, one collector, one tile layout; teleoperation watched the head-camera view. Glove-only policies do not transfer: co-training is required. Next: bimanual, tile-free in the wild.
+  \newcommand{\li}{\par\hangindent=1.1em\hangafter=1\noindent\textcolor{teal}{\raisebox{0.15ex}{\rule{0.55em}{0.55em}}}\ }
+  \begin{minipage}[t]{0.48\linewidth}\RaggedRight\small
+    \textbf{Limits}
+    \li One task, one collector, one tile layout.
+    \li Teleop watched the head-camera view.
+    \li Glove-only policies do not transfer; co-training is required.
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\linewidth}\RaggedRight\small
+    \textbf{Next}
+    \li Precision tasks, e.g.\ cable ties.
+    \li Bimanual, with a second glove.
+    \li Tile-free sessions in the wild.
+  \end{minipage}
 \end{block}
 \capt{Setup: eight ACT policies, joint-space actions. Rollouts: 25 placements, one trial each, \SI{60}{s}. Every co-trained mix uses the same 194 glove demos.}
 
