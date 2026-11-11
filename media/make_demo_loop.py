@@ -48,12 +48,14 @@ def fit(im, w, h):
 
 # ---------- pre-cuts (cached) ----------
 def sh(*a): subprocess.run(a, check=True)
-if not (S / "seg_coll.mp4").exists():  # phone, 17-57 s of the take, 1.6x, portrait 608x1080
-    sh("ffmpeg", "-v", "error", "-y", "-ss", "17", "-t", "40", "-i", str(PHONE), "-vf", "setpts=PTS/1.6,scale=608:1080", "-r", "30", "-an", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(S / "seg_coll.mp4"))
+if not (S / "seg_coll.mp4").exists():  # phone: the four demonstrations of the take (resets cut), 1.6x, portrait 608x1080
+    wins = [(2.0, 10.5), (19.5, 29.0), (41.0, 50.5), (61.0, 69.5)]
+    fc = "".join(f"[0:v]trim={a}:{b},setpts=(PTS-STARTPTS)/1.6,scale=608:1080[v{k}];" for k, (a, b) in enumerate(wins)) + "".join(f"[v{k}]" for k in range(len(wins))) + f"concat=n={len(wins)}:v=1:a=0[v]"
+    sh("ffmpeg", "-v", "error", "-y", "-i", str(PHONE), "-filter_complex", fc, "-map", "[v]", "-r", "30", "-an", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(S / "seg_coll.mp4"))
 if not (S / "seg_head_raw.mp4").exists():  # glove6 main take 169-190 s: episodes 38 and 39 with the reset between
     sh("ffmpeg", "-v", "error", "-y", "-ss", "169", "-t", "21", "-i", str(HEAD), "-vf", "scale=1920:1080", "-r", "25", "-an", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", str(S / "seg_head_raw.mp4"))
-if not (S / "seg_yam.mp4").exists():  # YAM-UMI paper video 18-34 s: collecting (2x) then the labels split screen
-    sh("ffmpeg", "-v", "error", "-y", "-ss", "18", "-t", "16", "-i", str(YAM / "yam-umi-paper-video.mp4"), "-vf", "scale=1748:984", "-r", "30", "-an", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(S / "seg_yam.mp4"))
+if not (S / "seg_yam.mp4").exists():  # YAM-UMI paper video 23.5-34 s: one demonstration (2x) then the labels split screen
+    sh("ffmpeg", "-v", "error", "-y", "-ss", "23.5", "-t", "10.5", "-i", str(YAM / "yam-umi-paper-video.mp4"), "-vf", "scale=1748:984", "-r", "30", "-an", "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(S / "seg_yam.mp4"))
 if not (S / "qr_yamumi.png").exists():  # QR for github.com/YosubShin/yam-umi via the LaTeX qrcode package
     (S / "qr.tex").write_text("\\documentclass{standalone}\\usepackage{qrcode}\\begin{document}\\qrcode[height=6cm]{https://github.com/YosubShin/yam-umi}\\end{document}\n")
     subprocess.run(["pdflatex", "-interaction=nonstopmode", "qr.tex"], cwd=S, check=True, capture_output=True); sh("pdftoppm", "-r", "300", "-png", "-singlefile", str(S / "qr.pdf"), str(S / "qr_yamumi"))
@@ -63,7 +65,7 @@ if not (S / "qr_crop-1.png").exists():  # the poster's QR (github.com/YosubShin/
 # ---------- ffmpeg sink ----------
 ff = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
                        "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(OUT)], stdin=subprocess.PIPE)
-nframes = 0
+nframes = 0; black = np.zeros((H, W, 3), np.uint8)
 def emit(bgr, n=1):
     global nframes
     for _ in range(n):
@@ -193,9 +195,13 @@ def seg_labels():
     a = cv2.aruco; p = a.DetectorParameters(); p.cornerRefinementMethod = a.CORNER_REFINE_SUBPIX
     d4 = a.ArucoDetector(a.getPredefinedDictionary(a.DICT_4X4_50), p); d36 = a.ArucoDetector(a.getPredefinedDictionary(a.DICT_APRILTAG_36h11), p)
     cap = cv2.VideoCapture(str(S / "seg_head_raw.mp4")); n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)); first = None
+    SKIP = (int((176.8 - 169) * 25), int((182.6 - 169) * 25))  # the reset between episodes 38 (170.3-176.5 s) and 39 (182.9-189.2 s)
     for i in range(n):
         ok, fr = cap.read()
         if not ok: break
+        if SKIP[0] <= i < SKIP[1]:
+            if i == SKIP[0]: emit(black, 6)
+            continue
         g = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY); c4, i4, _ = d4.detectMarkers(g); c36, i36, _ = d36.detectMarkers(g)
         nt = 0 if i36 is None else len(i36); nb = nta = 0
         def poly(cs, col, w=4):
@@ -230,6 +236,7 @@ def seg_deploy():
         ok, fr = cap.read()
         if not ok: break
         frames.append(fr)
+    frames = frames[int(2.0 * sfps):]  # the arm starts moving 2 s in
     total = int(round(len(frames) / sfps * FPS))
     for j in range(total):
         fr = frames[min(len(frames) - 1, int(j / FPS * sfps))]
@@ -255,15 +262,16 @@ def seg_compare():
     for pol, cam, name, outc in cols:
         own = grab(cv2.VideoCapture(glob.glob(str(G / f"{pol}_S23r0_*_{cam}.mp4"))[0])); wld = grab(cv2.VideoCapture(glob.glob(str(G / f"{pol}_S23r0_*_world.mp4"))[0]))
         vids.append((own, wld, R[(pol, 23)]["elapsed_s"], name, outc))
-    tmax = max(v[2] for v in vids); total = int(round(tmax / SPEED * FPS)) + FPS * 2; CW = 640; first = None
+    tmax = max(v[2] for v in vids); TCAP = 24.0  # the fixed camera never grasps; stop 8 s after the other two end
+    total = int(round(min(tmax, TCAP) / SPEED * FPS)) + int(FPS * 1.5); CW = 640; first = None
     for j in range(total):
         t = j / FPS * SPEED
         im = canvas(PAPER); d = ImageDraw.Draw(im)
         text(d, (W // 2, 140), "Placement 23: each policy's own camera (top) and a fixed third-person camera (bottom), one clock", font(30), MUTED, "mm")
-        text(d, (W - 48, 48), f"t = {min(t, tmax):4.1f} s   (1.5×)", font(30), LIGHT, "rm")
+        text(d, (W - 48, 48), f"t = {min(t, TCAP, tmax):4.1f} s   (1.5\u00d7)", font(30), LIGHT, "rm")
         out = to_bgr(im)
         for c, (own, wld, el, name, outc) in enumerate(vids):
-            x0 = c * CW; done = t >= el; tt = min(t, el - 1e-3)
+            x0 = c * CW; done = t >= el or t >= TCAP; tt = min(t, el - 1e-3, TCAP)
             fo = own[min(len(own) - 1, int(tt / el * len(own)))]; fw = wld[min(len(wld) - 1, int(tt / el * len(wld)))]
             ho, wo = fo.shape[:2]; s = min(CW / wo, 360 / ho); fo = cv2.resize(fo, (int(wo * s), int(ho * s)), interpolation=cv2.INTER_AREA)
             tile = np.zeros((360, CW, 3), np.uint8); ox = (CW - fo.shape[1]) // 2; tile[:fo.shape[0], ox:ox + fo.shape[1]] = fo
@@ -273,9 +281,9 @@ def seg_compare():
         im = to_pil(out); d = ImageDraw.Draw(im)
         for c, (own, wld, el, name, outc) in enumerate(vids):
             x0 = c * CW; d.rectangle([x0 + 4, 180, x0 + CW - 4, 244], fill=NAVY); text(d, (x0 + CW // 2, 212), name, font(28, True), WHITE, "mm")
-            if t >= el:
+            if t >= el or t >= TCAP:
                 col = TEAL if outc == "success" else AMBER
-                d.rectangle([x0 + 4, 980, x0 + CW - 4, 1040], fill=col); text(d, (x0 + CW // 2, 1010), f"{outc}  ·  {el:.0f} s", font(30, True), WHITE, "mm")
+                d.rectangle([x0 + 4, 980, x0 + CW - 4, 1040], fill=col); text(d, (x0 + CW // 2, 1010), f"{outc}  \u00b7  {el:.0f} s" + ("  (cut)" if el > TCAP else ""), font(30, True), WHITE, "mm")
         out = header_bar(to_bgr(im), "6", "One placement, seen by each policy")
         if first is None: first = out
         emit(out)
@@ -345,7 +353,6 @@ def seg_spring():
     return first, out
 
 # ---------- assemble ----------
-black = np.zeros((H, W, 3), np.uint8)
 tc = title_card(); emit(tc, FPS * 4); prev = tc
 segs = [seg_hardware, seg_yam, "bridge", seg_collection, seg_labels, seg_deploy, seg_compare] + ([seg_spring] if spring_available() else [])
 for seg in segs:
