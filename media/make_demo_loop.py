@@ -91,7 +91,7 @@ def header_bar(im_bgr, step, title):
     if SHORT: return im_bgr
     im = to_pil(im_bgr); d = ImageDraw.Draw(im)
     d.rectangle([0, 0, W, 96], fill=NAVY)
-    text(d, (48, 48), step, font(40, True), AMBER, "lm"); text(d, (140, 48), title, font(40, True), WHITE, "lm")
+    text(d, (48, 48), "D10", font(30, True), AMBER, "lm"); text(d, (150, 48), step, font(40, True), AMBER, "lm"); text(d, (240, 48), title, font(40, True), WHITE, "lm")
     return to_bgr(im)
 
 
@@ -108,7 +108,7 @@ def panel(active):
     if active in PANELS: return PANELS[active]
     im = canvas(PAPER); d = ImageDraw.Draw(im); px = MW; tx = px + 36; tw = W - tx - 36
     d.rectangle([px, 0, W, H], fill=NAVY)
-    text(d, (tx, 40), "YAM-UMI", font(60, True), WHITE); y = 120
+    text(d, (tx, 40), "YAM-UMI", font(60, True), WHITE); text(d, (W - 36, 72), "D10", font(40, True), AMBER, "rm"); y = 120
     for line in wrap(d, "A printed glove that collects metrically labelled demonstrations for the YAM arm", font(23), tw): text(d, (tx, y), line, font(23), LIGHT); y += 30
     y += 24
     for k, (h, b) in enumerate(BULLETS):
@@ -118,7 +118,7 @@ def panel(active):
         for line in bb: text(d, (tx, y), line, font(22), LIGHT if on else (0x6E, 0x7E, 0x92)); y += 28
         y += 30
     text(d, (tx, 985), "github.com/YosubShin/yam-umi  ·  head-cam-umi", font(21), AMBER)
-    text(d, (tx, 1018), "arXiv:2610.27622  ·  The UMI Arena, CoRL 2026", font(21), DIM)
+    text(d, (tx, 1018), "D10  \u00b7  arXiv:2610.27622  ·  The UMI Arena, CoRL 2026", font(21), DIM)
     PANELS[active] = to_bgr(im); return PANELS[active]
 def set_media(fn, active, caption, cap_x=40):
     global MEDIA, ACTIVE, CAPTION, CAP_X, PENDING; MEDIA, ACTIVE, CAPTION, CAP_X, PENDING = fn, active, caption, cap_x, True
@@ -186,7 +186,7 @@ def title_card():
     text(d, (120, 505), "labelled from printed fiducials by a fixed camera, or by one head-worn camera", font(40), LIGHT)
     text(d, (120, 620), "Yosub Shin¹,  Yuan Liu²,  Igor Molybog¹", font(40, True), WHITE)
     text(d, (120, 680), "¹University of Hawai'i at Mānoa    ²Independent", font(34), LIGHT)
-    text(d, (120, 860), "The UMI Arena  ·  CoRL 2026  ·  device track", font(34), AMBER)
+    text(d, (120, 860), "The UMI Arena  ·  CoRL 2026  ·  device track, entry D10", font(34), AMBER)
     return to_bgr(im)
 
 def bridge_card():
@@ -216,7 +216,7 @@ def end_card():
     for i, s in enumerate(["One printed glove, the YAM gripper's own fingers and rails", "$79 with the wrist fisheye, $22 without; 355 g / 370 g",
                            "Every label absolute, from printed fiducials, no IMU, no SLAM", "Hardware and tools: MIT licence"]):
         text(d, (120, 620 + 58 * i), "•  " + s, font(32), LIGHT)
-    text(d, (120, 900), "The UMI Arena  ·  CoRL 2026  ·  device track", font(34), DIM)
+    text(d, (120, 900), "The UMI Arena  ·  CoRL 2026  ·  device track, entry D10", font(34), DIM)
     return to_bgr(im)
 
 # ---------- 1 hardware ----------
