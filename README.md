@@ -14,6 +14,11 @@ IMU, no SLAM, no fixed tracker, and one data stream instead of three.
 > [PDF](paper/main.pdf) · [LaTeX source and figures](paper/) ·
 > [rollout grid log](rollout_logs/grid_20261016/trials.jsonl)
 
+> **Coming soon: the spring glove.** The last segment of the demo loop shows a variant with a spring
+> in one carriage that turns the squeeze into a grip-force label, read from the same frame as the pose
+> and jaw width. Its parts and calibration will be released in
+> [yam-umi](https://github.com/YosubShin/yam-umi) once its experiments are done.
+
 <p align="center">
   <img src="media/teaser.jpg" alt="(a) the collector wearing the camera and holding the glove over the tiled workspace; (b) the camera's own frame with tiles, ball and jaw tags marked; (c) the same camera on a six-joint positioner beside the robot during a rollout" width="100%">
 </p>
