@@ -167,8 +167,11 @@ head, so each jaw carries a printed wedge with its own tags.
   `STEP/aperture_tails.step`; print `STL/aperture_tail_left.stl` and
   `STL/aperture_tail_right.stl`.
 - **`gripper_back_marker_holder`** is the fixed reference the tails are
-  measured against, mounted on the back of the gripper; print two (the
-  `_left` and `_right` STLs are the same file).
+  measured against. Since November 2026 it is a mirrored left/right pair that
+  screws into the ends of YAM-UMI's `plate_v7` with an M2 × 6 mm screw into an
+  M2 heat-set insert (`STEP/gripper_back_marker_holder.step` holds both bodies;
+  print `STL/gripper_back_marker_holder_left.stl` and `_right.stl`). The
+  earlier single body was taped to the back of the gripper.
 
 ### Head mount
 
